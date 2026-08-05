@@ -1,5 +1,4 @@
 # [Leakage and the Reproducibility Crisis in ML-based Science](https://arxiv.org/pdf/2207.07048)
-TLDR:
 - **do not** pre-process, impute, feature selection, etc... **ON TEST SET** (L1.2, L1.3, L1.4)
 - test set **should** only have the most recent data (max(training date) < min(test date)); This results in better future performance evaluation L3.1
 - entries in both test and train data should be independent. L3.2 llm example:
