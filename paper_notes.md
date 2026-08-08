@@ -64,3 +64,6 @@ that in a study on predicting autism using ML models, excluding the data corresp
 leads to leakage since the test set is no longer representative
 of the general population about which claims are made
 ```
+
+# [DraftRec: Personalized Draft Recommendation for Winning in Multi-Player Online Battle Arena Games](https://arxiv.org/pdf/2207.07048)
+- kinda faulty paper, more thoughts to come
