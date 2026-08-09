@@ -66,4 +66,15 @@ of the general population about which claims are made
 ```
 
 # [DraftRec: Personalized Draft Recommendation for Winning in Multi-Player Online Battle Arena Games](https://arxiv.org/pdf/2207.07048)
-- kinda faulty paper, more thoughts to come
+- found some parts of the underlying architecture to be quite faulty/badly thought, but overall goal is still achieved
+- they do multi models like sol will do: 1 for player preference and 1 for match outcome prediction
+- use of sin waves for "temporal" context which is interesting
+- they use UNK/Undefined for the draft engine
+
+
+- how picks are stored:
+```
+The entire drafting process illustrated in Section 3.1 can be formalized as follows. 
+Let us denote a single match as $m^i$ (for $1 \leq i \leq M$, where $M$ is the total number of matches in our training data) which is composed of 10 champion selections, one per each player. 
+Players $[p_1^i, \cdots, p_{10}^i]$ (where $p_t^i$ represents the player at turn $t$ in match $m^i$) are evenly divided into two teams, Blue $[p_t^i]{t=1,4,5,8,9}$ and Purple $[p_t^i]{t=2,3,6,7,10}$ as shown in Fig. 1(b). Here, the ground-truth champion, role, match outcome (e.g., win or lose) and team of $p_t^i$ are respectively defined as $c_t^i$, $r_t^i$, $o_t^i$ and $team_t^i$.
+```
