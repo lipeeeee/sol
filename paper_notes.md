@@ -78,3 +78,6 @@ Let us denote a single match as $m^i$ (for $1 \leq i \leq M$, where $M$ is the t
 Players $[p_1^i, \cdots, p_{10}^i]$ (where $p_t^i$ represents the player at turn $t$ in match $m^i$) are evenly divided into two teams, Blue $[p_t^i]{t=1,4,5,8,9}$ and Purple $[p_t^i]{t=2,3,6,7,10}$ as shown in Fig. 1(b). Here, the ground-truth champion, role, match outcome (e.g., win or lose) and team of $p_t^i$ are respectively defined as $c_t^i$, $r_t^i$, $o_t^i$ and $team_t^i$.
 <img width="1590" height="628" alt="image" src="https://github.com/user-attachments/assets/d97099ad-745f-46eb-ae69-df3c092e3aee" />
 
+# Learning representations by back-propagating errors
+# Pranking with Ranking
+# Learning to Rank using Gradient Descent
