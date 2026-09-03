@@ -94,5 +94,15 @@ def neuron(inputs, weights, bias):
   activation = relu(z) # for regression dont activation fn
   return activation
 ```
+
+# [Improving Language Understanding by Generative Pre-Training](https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf)
+- openai paper on pre-training LMs
+- Logs make gradients healthier on probability instead of doing product we u can do sum of log 
+<img width="806" height="118" alt="image" src="https://github.com/user-attachments/assets/6aea137c-2347-422f-855e-12aa090b7fbd" />
+
+u = token set; k = context window; O1 is model params; maximizing L1(loss is `-L1`)
+
+
 # Pranking with Ranking
 # Learning to Rank using Gradient Descent
+
