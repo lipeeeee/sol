@@ -1,2 +1,2 @@
 # sol
-required flags to run in `FLAGS.txt`
+required flags to run are in `FLAGS.txt`
