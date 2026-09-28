@@ -76,4 +76,3 @@ def update_data()->None:
 
 
 if __name__ == "__main__": update_data()
-else: raise RuntimeError("You aren't supposed to import this")
