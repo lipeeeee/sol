@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Sol</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%2317191d'/%3E%3Cpath d='M8 9h16v4H12v3h12v7H8v-4h12v-3H8z' fill='%23e5e7eb'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">S</span><span>SOL</span></div>
+    <div class="topbar-actions">
+      <span class="local-badge"><span aria-hidden="true"></span> LOCAL <b id="sol-version">Sol</b></span>
+      <button id="clear-draft" type="button" disabled>Clear draft</button>
+    </div>
+  </header>
+  <main class="workspace" aria-label="Draft editor">
+    <section class="team blue" data-side="blue" aria-label="Blue side picks and bans">
+      <div class="picks" id="blue-picks"></div>
+      <div class="ban-section"><div class="ban-heading">BANS</div><div class="bans" id="blue-bans"></div></div>
+    </section>
+    <section class="picker" aria-labelledby="pool-heading">
+      <div class="picker-toolbar">
+        <div class="pool-heading"><h2 id="pool-heading" aria-live="polite">Champion pool(0)</h2></div>
+        <div class="catalog-controls">
+          <div class="filters" role="group" aria-label="Filter champions by preferred role">
+            <button type="button" data-role="top" aria-pressed="false" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 2h16v16h-4V6H6v8H2z"/></svg>Top</button>
+            <button type="button" data-role="jungle" aria-pressed="false" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 19 6 12 7 2l3 7 3-7 1 10zM5 16 1 5l5 5zm10 0-1-6 5-5z"/></svg>Jungle</button>
+            <button type="button" data-role="mid" aria-pressed="false" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 2h10L2 12zm16 16H8l10-10zM2 15 15 2h3v3L5 18H2z"/></svg>Mid</button>
+            <button type="button" data-role="adc" aria-pressed="false" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M18 18H2V2h4v12h8V6h4z"/></svg>ADC</button>
+            <button type="button" data-role="support" aria-pressed="false" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 1 3 4-3 3-3-3zM1 6l7 3-2 5zm18 0-7 3 2 5zM10 9l3 8-3 3-3-3z"/></svg>Support</button>
+          </div>
+          <label class="search"><span class="search-icon" aria-hidden="true"></span><input id="search" type="search" placeholder="Search by name" aria-label="Search champions" autocomplete="off"></label>
+          <div class="view-modes" role="group" aria-label="Champion view">
+            <button type="button" data-view="normal" aria-label="Normal champion view" title="Normal view" aria-pressed="true"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 2h7v7H2zm9 0h7v7h-7zM2 11h7v7H2zm9 0h7v7h-7z"/></svg></button>
+            <button type="button" data-view="compact" aria-label="Compact champion view" title="Compact view" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M1 1h5v5H1zm6 0h5v5H7zm6 0h5v5h-5zM1 7h5v5H1zm6 0h5v5H7zm6 0h5v5h-5zM1 13h5v5H1zm6 0h5v5H7zm6 0h5v5h-5z"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="roster-scroll"><div class="champions" id="champions" aria-label="Champion choices"></div><p id="empty-search" hidden>No champions match your search.</p></div>
+    </section>
+    <section class="team red" data-side="red" aria-label="Red side picks and bans">
+      <div class="picks" id="red-picks"></div>
+      <div class="ban-section"><div class="ban-heading">BANS</div><div class="bans" id="red-bans"></div></div>
+    </section>
+    <section class="evaluation" aria-labelledby="evaluation-heading">
+      <h2 id="evaluation-heading">Draft evaluation</h2><p id="evaluation-status" role="status" aria-live="polite">Loading Sol…</p>
+      <div id="probability" hidden><div class="probability-labels"><span>Blue <strong id="blue-probability"></strong></span><span>Red <strong id="red-probability"></strong></span></div><div class="probability-track" role="img" id="probability-bar"><span id="blue-bar"></span></div></div>
+    </section>
+  </main>
+  <template id="pick-template">
+    <article class="pick-slot"><button type="button" class="pick-select" aria-keyshortcuts="Delete"><span class="slot-art"><span class="slot-placeholder" aria-hidden="true"></span><img alt="" hidden></span><span class="pick-copy"><span class="slot-label"></span><strong class="champion-name"></strong></span></button></article>
+  </template>
+  <template id="ban-template">
+    <button class="ban-slot" type="button" aria-keyshortcuts="Delete"><span class="slot-art">
+      <span class="slot-placeholder" aria-hidden="true">—</span><img alt="" hidden>
+      <svg class="ban-symbol" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.75"/><path d="m4.4 4.4 15.2 15.2"/></svg>
+    </span><span class="ban-label"></span></button>
+  </template>
+  <template id="champion-template">
+    <button class="champion" type="button"><span class="champion-art"><span class="portrait-placeholder" aria-hidden="true"></span><img alt="" loading="lazy" decoding="async" hidden></span><span class="champion-caption"></span></button>
+  </template>
+</body>
+</html>
