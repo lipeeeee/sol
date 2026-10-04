@@ -1,5 +1,5 @@
 # iteration agnostic, lazy loaded dataset. (design is kinda pretty)
-from sol.helpers import *
+from sol.utils import *
 from pathlib import Path
 from itertools import islice
 from collections import defaultdict
@@ -10,7 +10,7 @@ class SolDataset():
     self.data_folder:Path = data_folder if isinstance(data_folder, Path) else Path(data_folder)
     self.found_csv:list[Path] = sorted(self.data_folder.glob("*.csv"))
     assert not self.found_csv is None and len(self.found_csv) > 0, f"could not find any .csv in {data_folder}"
-    if True: print(len(self.found_csv), "csv's found") # NOTE: missing debug flag
+    if DEBUG >= 4: print(len(self.found_csv), "csv's found")
     self.device:str = device
     self._data:dict[str, dict] = defaultdict(lambda: defaultdict(dict))
 
@@ -28,9 +28,9 @@ class SolDataset():
 
           self._data["firstPick"][game_id]["Blue"] = "1" if batch[10]["firstPick"] == "" else batch[10]["firstPick"]
           self._data["firstPick"][game_id]["Red"] = "0" if batch[11]["firstPick"] == "" else batch[11]["firstPick"]
-          # safe parsing flag
-          if batch[10]["firstPick"] == "0": assert batch[11]["firstPick"] == "1"
-          if batch[11]["firstPick"] == "0": assert batch[10]["firstPick"] == "1"
+          if SAFE_DATA_PARSING: 
+            if batch[10]["firstPick"] == "0": assert batch[11]["firstPick"] == "1"
+            if batch[11]["firstPick"] == "0": assert batch[10]["firstPick"] == "1"
 
           game_id += 1
 
