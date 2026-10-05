@@ -1,10 +1,11 @@
 import json
 import logging
 import re
+from collections.abc import Callable
 from http.client import HTTPException
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from urllib.request import urlopen
+from storage import atomic_write
 
 ASSET_VERSION:str = "16.19.1"
 CDN:str = f"https://ddragon.leagueoflegends.com/cdn/{ASSET_VERSION}"
@@ -20,16 +21,6 @@ def fetch_bytes(url:str)->bytes:
     data:bytes = response.read(); length:str|None = response.headers.get("Content-Length")
   if length is not None and len(data) != int(length): raise OSError("Incomplete artwork download")
   return data
-
-def atomic_write(path:Path, data:bytes)->None:
-  path.parent.mkdir(parents=True, exist_ok=True)
-  temporary:Path|None = None
-  try:
-    with NamedTemporaryFile(dir=path.parent, prefix=".", delete=False) as file:
-      temporary = Path(file.name); file.write(data)
-    temporary.replace(path)
-  finally:
-    if temporary is not None: temporary.unlink(missing_ok=True)
 
 def decode_catalogue(data:bytes)->dict[str, str]:
   catalogue:object = json.loads(data)
@@ -66,14 +57,26 @@ def validate_png(data:bytes)->None:
   if len(data) < 32 or not data.startswith(PNG_SIGNATURE) or not data.endswith(PNG_END):
     raise ValueError("Invalid or incomplete PNG portrait")
 
-def portrait_bytes(filename:str, cache:Path=CACHE)->bytes:
-  assert FILENAME.fullmatch(filename), "Portrait filename must come from the validated catalogue"
-  path:Path = cache / filename
+def validate_jpeg(data:bytes)->None:
+  if len(data) < 32 or not data.startswith(b"\xff\xd8\xff") or not data.endswith(b"\xff\xd9"):
+    raise ValueError("Invalid or incomplete JPEG splash")
+
+def cached_image(path:Path, url:str, validate:Callable[[bytes], None])->bytes:
   if path.is_file():
     try:
-      data:bytes = path.read_bytes(); validate_png(data)
+      data:bytes = path.read_bytes(); validate(data)
       return data
-    except (OSError, ValueError) as error: logging.warning("Invalid cached portrait %s: %s", filename, error)
-  data = fetch_bytes(f"{CDN}/img/champion/{filename}")
-  validate_png(data); atomic_write(path, data)
+    except (OSError, ValueError) as error: logging.warning("Invalid cached artwork %s: %s", path.name, error)
+  data = fetch_bytes(url)
+  validate(data); atomic_write(path, data)
   return data
+
+def portrait_bytes(filename:str, cache:Path=CACHE)->bytes:
+  assert FILENAME.fullmatch(filename), "Portrait filename must come from the validated catalogue"
+  return cached_image(cache / filename, f"{CDN}/img/champion/{filename}", validate_png)
+
+def splash_bytes(filename:str, cache:Path=CACHE)->bytes:
+  assert FILENAME.fullmatch(filename), "Splash filename must come from the validated catalogue"
+  splash:str = f"{Path(filename).stem}_0.jpg"
+  return cached_image(cache / "splashes" / splash,
+                      f"https://ddragon.leagueoflegends.com/cdn/img/champion/splash/{splash}", validate_jpeg)

@@ -5,12 +5,14 @@ import {emptyDraft, slotChampion, occupiedSlots, assignChampion, clearSlot, swap
 const state = {draft: emptyDraft(), selected: null, selectedChampion: null, search: "", role: "", view: "normal",
   revision: 0, pending: false, probability: null, error: null};
 let bootstrap = null;
+const storage = {drafts: [], pending: false, error: null, message: ""};
 /** @type {Map<number, Champion>} */
 const champions = new Map();
 const championButtons = new Map(), pickElements = new Map(), banElements = new Map(), failedPortraits = new Set();
 const dom = Object.fromEntries(["sol-version", "clear-draft", "pool-heading", "search", "champions", "empty-search",
   "evaluation-status", "probability", "blue-probability", "red-probability",
-  "probability-bar", "blue-bar"].map(id => [id, document.getElementById(id)]));
+  "probability-bar", "blue-bar", "save-draft-form", "draft-name", "save-draft", "saved-drafts",
+  "load-draft", "delete-draft", "storage-status"].map(id => [id, document.getElementById(id)]));
 if (Object.values(dom).some(element => !element)) throw new Error("The draft page is missing required controls");
 
 function normalise(text) { return text.toLowerCase().replace(/[^a-z0-9]/g, ""); }
@@ -23,14 +25,15 @@ function eventSlot(element) {
   return {side: element.dataset.side, kind: element.dataset.kind, index: Number(element.dataset.index)};
 }
 
-function setPortrait(container, champion, fallback) {
+function setPortrait(container, champion, fallback, splash = false) {
   const image = container.querySelector("img"), placeholder = container.querySelector("span");
-  const url = champion?.portrait_url;
+  const urls = splash ? [champion?.splash_url, champion?.portrait_url] : [champion?.portrait_url];
+  const url = urls.find(url => url && !failedPortraits.has(url));
   placeholder.textContent = fallback;
-  if (!url || failedPortraits.has(url)) { image.hidden = true; image.removeAttribute("src"); return; }
+  if (!url) { image.hidden = true; image.removeAttribute("src"); return; }
   image.hidden = false;
   if (image.getAttribute("src") !== url) image.src = url;
-  image.onerror = () => { failedPortraits.add(url); image.hidden = true; };
+  image.onerror = () => { failedPortraits.add(url); setPortrait(container, champion, fallback, splash); };
 }
 
 function createSlots() {
@@ -69,7 +72,7 @@ function renderTeams() {
       button.setAttribute("aria-pressed", selected); button.setAttribute("aria-label", `${label(slot)}: ${champion?.name ?? "empty"}`);
       card.querySelector(".champion-name").textContent = champion?.name ?? "";
       card.querySelector(".champion-name").title = champion?.name ?? "";
-      setPortrait(card.querySelector(".slot-art"), champion, label(slot));
+      setPortrait(card.querySelector(".slot-art"), champion, label(slot), true);
       const banSlot = {side, kind: "bans", index}, ban = banElements.get(key(banSlot));
       const banned = champions.get(state.draft[side].bans[index]), banSelected = key(banSlot) === key(state.selected);
       ban.classList.toggle("selected", banSelected); ban.classList.toggle("filled", Boolean(banned));
@@ -116,7 +119,46 @@ function renderEvaluation() {
 function draftChanged() {
   state.selected = null; state.selectedChampion = null;
   state.revision++; state.probability = null; state.error = null;
-  renderTeams(); renderRoster(); renderEvaluation(); evaluateDraft();
+  storage.message = "";
+  renderTeams(); renderRoster(); renderEvaluation(); renderStorage(); evaluateDraft();
+}
+
+function renderStorage() {
+  dom["draft-name"].disabled = storage.pending;
+  dom["save-draft"].disabled = !bootstrap || storage.pending || !dom["draft-name"].value.trim();
+  dom["saved-drafts"].disabled = storage.pending || storage.drafts.length === 0;
+  for (const id of ["load-draft", "delete-draft"]) dom[id].disabled = !bootstrap || storage.pending || !dom["saved-drafts"].value;
+  dom["storage-status"].classList.toggle("error", Boolean(storage.error));
+  dom["storage-status"].textContent = storage.error ?? (storage.pending ? "Working with saved drafts…" :
+    storage.message || "Save a named snapshot to keep this draft on your computer.");
+}
+
+function renderSavedDrafts(selected = dom["saved-drafts"].value) {
+  const placeholder = document.createElement("option");
+  placeholder.value = ""; placeholder.textContent = storage.drafts.length ? "Choose a saved draft" : "No saved drafts";
+  const options = storage.drafts.map(saved => {
+    const option = document.createElement("option"); option.value = saved.id;
+    option.textContent = `${saved.name} · Sol ${saved.sol_version} · ${new Date(saved.saved_at).toLocaleString()}`;
+    return option;
+  });
+  dom["saved-drafts"].replaceChildren(placeholder, ...options);
+  dom["saved-drafts"].value = storage.drafts.some(saved => saved.id === selected) ? selected : "";
+}
+
+/** @param {string} url @param {RequestInit} [options] @returns {Promise<object>} */
+async function storageRequest(url, options) {
+  const response = await fetch(url, options), result = await response.json();
+  if (!response.ok) throw new Error(result.error || "Could not access saved drafts.");
+  return result;
+}
+
+/** @param {()=>Promise<void>} action @returns {Promise<void>} */
+async function storageAction(action) {
+  if (storage.pending) return;
+  storage.pending = true; storage.error = null; storage.message = ""; renderStorage();
+  try { await action(); }
+  catch (error) { storage.error = error.message || String(error); }
+  finally { storage.pending = false; renderStorage(); }
 }
 
 /** @param {Slot} slot @param {number} id @returns {void} */
@@ -197,8 +239,39 @@ document.querySelector(".view-modes").addEventListener("click", event => {
   for (const mode of document.querySelectorAll(".view-modes button")) mode.setAttribute("aria-pressed", mode === button);
 });
 dom.search.addEventListener("input", () => { state.search = dom.search.value; renderRoster(); });
+dom["draft-name"].addEventListener("input", renderStorage);
+dom["saved-drafts"].addEventListener("change", renderStorage);
+dom["save-draft-form"].addEventListener("submit", event => {
+  event.preventDefault();
+  if (dom["save-draft"].disabled) return;
+  const name = dom["draft-name"].value.trim(), revision = state.revision, draft = JSON.stringify({name, draft: state.draft});
+  storageAction(async () => {
+    const saved = await storageRequest("/api/drafts", {method: "POST", headers: {"Content-Type": "application/json"}, body: draft});
+    storage.drafts.unshift(saved); renderSavedDrafts(saved.id);
+    storage.message = `Saved “${saved.name}”.${revision !== state.revision ? " Newer edits are not saved." : ""}`;
+  });
+});
+dom["load-draft"].addEventListener("click", () => {
+  if (dom["load-draft"].disabled) return;
+  const id = dom["saved-drafts"].value, revision = state.revision;
+  storageAction(async () => {
+    const saved = await storageRequest(`/api/drafts/${id}`);
+    if (revision !== state.revision) throw new Error("The draft changed while loading. Load again to replace it.");
+    state.draft = saved.draft; dom["draft-name"].value = saved.name; draftChanged();
+    storage.message = `Loaded “${saved.name}”.`;
+  });
+});
+dom["delete-draft"].addEventListener("click", () => {
+  if (dom["delete-draft"].disabled) return;
+  const id = dom["saved-drafts"].value;
+  storageAction(async () => {
+    await storageRequest(`/api/drafts/${id}`, {method: "DELETE"});
+    storage.drafts = storage.drafts.filter(saved => saved.id !== id); renderSavedDrafts();
+    storage.message = "Deleted the saved snapshot. The current draft is still open.";
+  });
+});
 dom["clear-draft"].addEventListener("click", () => {
-  state.draft = emptyDraft(); draftChanged();
+  state.draft = emptyDraft(); dom["draft-name"].value = ""; draftChanged();
 });
 async function start() {
   createSlots(); renderTeams();
@@ -214,6 +287,9 @@ async function start() {
     }
     dom["sol-version"].textContent = `Sol ${bootstrap.sol_version}`;
     evaluateDraft();
+    storageAction(async () => {
+      const result = await storageRequest("/api/drafts"); storage.drafts = result.drafts; renderSavedDrafts();
+    });
   } catch (error) {
     dom["empty-search"].textContent = "Could not load champions. Refresh to try again."; dom["empty-search"].hidden = false;
     dom["evaluation-status"].textContent = String(error); dom["evaluation-status"].classList.add("error");

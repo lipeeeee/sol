@@ -13,6 +13,7 @@ All production code stays directly under `draft-ui/`:
 | `run.py` | Parse arguments and start the process | A known Sol version serves on loopback; startup errors stop execution |
 | `server.py` | Translate HTTP requests and responses | Only known routes are served; evaluation receives validated input |
 | `draft.py` | Define and validate draft snapshots | Valid snapshots retain their slots, IDs, and nulls unchanged |
+| `storage.py` | Persist draft snapshots and publish files atomically | Saves survive restarts; each save has its own ID; disk paths never use draft names |
 | `bridge.py` | Connect repository metadata and future inference | Sol IDs remain authoritative; evaluator availability is truthful |
 | `assets.py` | Fetch and cache Riot artwork | Validated downloads are published atomically |
 | `draft.mjs` | Apply draft edits | Slot counts and champion uniqueness remain valid |
@@ -83,9 +84,14 @@ The exact integer check rejects JSON booleans: Python otherwise treats `True` as
 
 | Route | Behavior |
 |---|---|
-| `GET /api/bootstrap` | Return version, champions with local portrait URLs, and evaluator availability |
+| `GET /api/bootstrap` | Return version, champions with local portrait/splash URLs, and evaluator availability |
 | `POST /api/evaluate` | Validate the submitted snapshot, including partial drafts, then invoke inference |
+| `GET /api/drafts` | List saved snapshot metadata, newest first |
+| `POST /api/drafts` | Validate a name and snapshot, then create a separate JSON file on disk |
+| `GET /api/drafts/<id>` | Read and validate a saved snapshot |
+| `DELETE /api/drafts/<id>` | Remove only the selected saved snapshot |
 | `GET /portraits/<asset-version>/<sol-id>.png` | Resolve a known Sol champion to its Riot portrait |
+| `GET /splashes/<asset-version>/<sol-id>.jpg` | Resolve a known Sol champion to its default Riot splash |
 | Explicit page/script/style/font routes | Serve only listed UI files |
 
 Use a fixed static map. Request paths never become arbitrary filesystem paths or download URLs. Accept JSON evaluation bodies up to 16 KiB. Parsing and validation errors return 400; an absent evaluator returns 503. Pass the optional callable directly into the handler so tests can bind a deterministic function.
@@ -139,7 +145,9 @@ Without a pending champion, clicking a slot selects it as the swap source, even 
 
 Champion assignments, replacements, swaps, and clears set both selections to null before rendering. Clear both slot outlines and roster chosen/pressed states. A no-op choice of the selected slot's champion also deselects without changing the draft revision. Draft reset clears selection too.
 
-Disable champions used elsewhere and explain their occupied slot in accessible labels. Right-clicking an occupied slot, or its champion in the pool, clears the holder without shifting slots. Delete clears the focused slot for keyboard users. Disable roster role filters while preference lists are empty; filters only control pool visibility. Clearing the draft resets picks, bans, and selection. Reloading starts fresh; state stays in memory.
+Disable champions used elsewhere and explain their occupied slot in accessible labels. Right-clicking an occupied slot, or its champion in the pool, clears the holder without shifting slots. Delete clears the focused slot for keyboard users. Disable roster role filters while preference lists are empty; filters only control pool visibility. Clearing the draft resets picks, bans, selection, and the draft name. Reloading starts a fresh active draft; saved snapshots remain on disk.
+
+The saved-draft controls are separate from evaluation state. Save captures the current snapshot before sending it and creates a new file rather than overwriting an earlier save. Load replaces the active draft, clears selections, and follows ordinary draft revision/evaluation handling. If editing continues during a load, retain those newer edits and show a retry message. Delete removes the saved file without changing the open draft. Storage failures appear beside these controls and leave drafting available. Write files atomically through `storage.atomic_write`, shared with the artwork cache. Invalid saved files remain on disk and are skipped with server warnings.
 
 Route right-click edits through the same domain operation and draft revision handling:
 
@@ -161,7 +169,7 @@ state.role = state.role === button.dataset.role ? "" : button.dataset.role;
 state.view = button.dataset.view; dom.champions.classList.toggle("compact", state.view === "compact");
 ```
 
-Use a pure black page, solid near-black cells, strong blue/red accents, and yellow selection/focus highlights. The centre has no surrounding frame; a thin border bounds only the scrolling champion grid. Its bottom aligns with the ban rows on desktop. Use CSS size containment on the roster so its contents cannot stretch the shared grid row; evaluation occupies the next row. Pick cells are wide with bold slot labels, regular-weight champion names, and 4 px gaps. Selected cells use one yellow for their outline, side stripe, portrait frame, and slot labels; champion names keep their normal colour. Their fixed row heights and portraits shrink on smaller or shorter screens; they never stretch to fill the page. Ban tiles have no empty captions or visible champion names; keep hover titles and accessible names. Normal champion tiles keep spacing; compact tiles use a smaller minimum width with zero gap. Colours identify the sides without visible team headings; retain accessible side labels. Put the visible roster count in `Champion pool(<count>)`. Omit empty-pick captions, pick counts, the selection badge, pool status row, individual clear button, and footer. Stack the layout below 1000 px.
+Use a pure black page, solid near-black cells, strong blue/red accents, and yellow selection/focus highlights. The centre has no surrounding frame; a thin border bounds only the scrolling champion grid. Its bottom aligns with the ban rows on desktop. Use CSS size containment on the roster so its contents cannot stretch the shared grid row; evaluation occupies the next row. Pick cells are wide with bold slot labels, regular-weight champion names, and 4 px gaps. Filled cells show splash artwork covering the cell beneath the labels; empty cells retain their square placeholders. Selected cells use one yellow for their outline, side stripe, and slot labels; champion names keep their normal colour. Their fixed row heights shrink on smaller or shorter screens; they never stretch to fill the page. Ban tiles have no empty captions or visible champion names; keep hover titles and accessible names. Normal champion tiles keep spacing; compact tiles use a smaller minimum width with zero gap. Colours identify the sides without visible team headings; retain accessible side labels. Put the visible roster count in `Champion pool(<count>)`. Omit empty-pick captions, pick counts, the selection badge, pool status row, individual clear button, and footer. Stack the layout below 1000 px.
 
 ### Evaluation and stale responses
 
@@ -197,9 +205,9 @@ Display estimated blue probability as `p` and red as `1 - p`; round only for pre
 
 Use [Riot Data Dragon](https://developer.riotgames.com/docs/lol#data-dragon), pinned to `16.19.1` independently of the Sol version. Load the cached catalogue or fetch it once during startup. Normalize display names, then read `image.full` to handle filenames such as Wukong's `MonkeyKing.png`. Keep Riot numeric IDs out of draft state.
 
-Validate catalogue structure, version, unique normalized names, and simple PNG basenames. Store catalogue and portraits under the ignored `.cache/ddragon/<version>/` directory. Fetch portraits on first request; cached files work offline, and missing artwork uses named placeholders.
+Validate catalogue structure, version, unique normalized names, and simple PNG basenames. Store catalogue and portraits under the ignored `.cache/ddragon/<version>/` directory, with default splashes in its `splashes/` subdirectory. Derive splash filenames from validated portrait basenames, such as `MonkeyKing.png` to `MonkeyKing_0.jpg`. Riot splash URLs are unversioned. Fetch artwork on first request; cached files work offline. Pick cards use splashes with `object-fit: cover`, retaining the existing labels and colours over a dark gradient. Missing splashes fall back to portraits, then named placeholders; pool and ban tiles keep square portraits.
 
-Check declared download length when present. Validate JSON before caching; check the PNG signature and terminal IEND marker for portraits. Invalid cached files are misses and are never served. Publish validated bytes with one filesystem primitive:
+Check declared download length when present. Validate JSON before caching; check the PNG signature and terminal IEND marker for portraits, and JPEG start/end markers for splashes. Invalid cached files are misses and are never served. Publish validated bytes with one filesystem primitive:
 
 ```python
 def atomic_write(path:Path, data:bytes)->None:
@@ -234,6 +242,7 @@ node --test draft-ui/tests/*.test.mjs
 | Draft contract | Empty and arbitrary partial slots accepted unchanged; malformed shapes, unknown/boolean IDs, duplicates, and role-assignment objects rejected |
 | Editing | Independent arrays; swaps preserve champions and slot counts; moves empty their source; replacements and clears release champions; preferences never assign roles |
 | HTTP | Known version starts; unknown version fails; unexpected paths return 404; absent evaluator returns 503 |
+| Saved drafts | Exact partial slots survive server restarts; repeated names create distinct saves; concurrent writes retain every snapshot; failed writes clean up; invalid IDs cannot escape the storage directory; load/delete failures preserve editing |
 | Evaluator | Test callable receives exact version/snapshot; invalid outputs and model errors return 500 |
 | Artwork | Name exceptions mapped correctly; cache avoids downloads; invalid/interrupted downloads unpublished; failed replacement preserves old files |
 | Browser | Champion-first and slot-first assignment/replacement; pending champion changes/cancellation; swaps in both directions with empty slots; deselection after edits; right-click/Delete clearing; role re-click reset and search combinations; both views preserve selections; errors, stale responses, and session reset |

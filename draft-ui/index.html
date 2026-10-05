@@ -15,8 +15,14 @@
     <div class="topbar-actions">
       <span class="local-badge"><span aria-hidden="true"></span> LOCAL <b id="sol-version">Sol</b></span>
       <button id="clear-draft" type="button" disabled>Clear draft</button>
+      <div class="draft-file-actions" role="group" aria-label="Draft files">
+        <button id="save-draft" type="button" disabled>Save</button>
+        <button id="load-draft" type="button" disabled>Load</button>
+      </div>
+      <input id="draft-file" type="file" accept=".json,application/json" hidden>
     </div>
   </header>
+  <p id="storage-status" role="status" aria-live="polite" hidden></p>
   <main class="workspace" aria-label="Draft editor">
     <section class="team blue" data-side="blue" aria-label="Blue side picks and bans">
       <div class="picks" id="blue-picks"></div>

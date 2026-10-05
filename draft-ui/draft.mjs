@@ -3,7 +3,7 @@
 /** @typedef {{side: Side, kind: Kind, index: number}} Slot */
 /** @typedef {{picks: (number|null)[], bans: (number|null)[]}} Team */
 /** @typedef {{blue: Team, red: Team}} Draft */
-/** @typedef {{id: number, name: string, roles: string[], portrait_url?: string|null}} Champion */
+/** @typedef {{id: number, name: string, roles: string[], portrait_url?: string|null, splash_url?: string|null}} Champion */
 
 function assert(condition, message) { if (!condition) throw new Error(message); }
 function assertSlot(slot) {

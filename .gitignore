@@ -1,6 +1,7 @@
 data/*
 build/*
 checkpoints/*
+draft-ui/drafts/
 
 .sol_env
 
