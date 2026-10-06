@@ -39,7 +39,7 @@ class SolDataset():
           self._data["patch"][game_id] = batch[0]["patch"]
           self._data["datacompleteness"][game_id] = batch[0]["datacompleteness"]
           if SAFE_DATA_PARSING:
-            assert batch[0]["gameid"] != ""; assert batch[0]["gameid"] == batch[11]["gameid"]
+            assert batch[0]["gameid"] != ""; assert all(row["gameid"] == batch[0]["gameid"] for row in batch)
             assert batch[0]["datacompleteness"] in ("complete", "partial")
             assert batch[0]["playoffs"] in ("1", "0"); assert batch[0]["game"] in ("1", "2", "3", "4", "5")
             assert batch[0]["date"] != ""; assert batch[0]["patch"] != ""
@@ -56,6 +56,7 @@ class SolDataset():
           if SAFE_DATA_PARSING:
             if batch[10]["firstPick"] == "0": assert batch[11]["firstPick"] == "1"
             if batch[11]["firstPick"] == "0": assert batch[10]["firstPick"] == "1"
+            assert self._data["firstPick"][game_id][0] != self._data["firstPick"][game_id][1]
           
           self._data["pick_order"][game_id][0] = [batch[10][f"pick{i}"] for i in range(1, 6)]
           self._data["pick_order"][game_id][1] = [batch[11][f"pick{i}"] for i in range(1, 6)]
