@@ -18,7 +18,9 @@ UI:Path = Path(__file__).resolve().parent
 STATIC:dict[str, tuple[str, str]] = {
   "/": ("index.html", "text/html"), "/index.html": ("index.html", "text/html"),
   "/styles.css": ("styles.css", "text/css"), "/app.js": ("app.js", "text/javascript"),
-  "/draft.mjs": ("draft.mjs", "text/javascript"), "/outfit-latin.woff2": ("outfit-latin.woff2", "font/woff2")
+  "/draft.mjs": ("draft.mjs", "text/javascript"),
+  "/draft-file.mjs": ("draft-file.mjs", "text/javascript"),
+  "/outfit-latin.woff2": ("outfit-latin.woff2", "font/woff2")
 }
 PORTRAIT:re.Pattern[str] = re.compile(rf"/portraits/{re.escape(assets.ASSET_VERSION)}/([1-9][0-9]*)\.png")
 SPLASH:re.Pattern[str] = re.compile(rf"/splashes/{re.escape(assets.ASSET_VERSION)}/([1-9][0-9]*)\.jpg")
@@ -45,7 +47,7 @@ class Handler(BaseHTTPRequestHandler):
     self.end_headers()
     if self.command != "HEAD": self.wfile.write(data)
 
-  def send_json(self:Handler, status:int, value:dict[str, object])->None:
+  def send_json(self:Handler, status:int, value:object)->None:
     self.send_bytes(status, json.dumps(value, allow_nan=False).encode(), "application/json; charset=utf-8")
 
   def do_HEAD(self:Handler)->None: self.do_GET()
@@ -86,10 +88,10 @@ class Handler(BaseHTTPRequestHandler):
     match = PORTRAIT.fullmatch(path) or SPLASH.fullmatch(path)
     if match and int(match[1]) in self.champion_ids:
       champion:Champion = next(champion for champion in self.champions if champion["id"] == int(match[1]))
-      filename:str|None = self.artwork.get(assets.normalise_name(champion["name"]))
-      if filename is None: self.send_json(404, {"error": "Artwork unavailable"}); return
+      artwork_filename:str|None = self.artwork.get(assets.normalise_name(champion["name"]))
+      if artwork_filename is None: self.send_json(404, {"error": "Artwork unavailable"}); return
       is_splash:bool = path.startswith("/splashes/")
-      try: data:bytes = (assets.splash_bytes if is_splash else assets.portrait_bytes)(filename)
+      try: data:bytes = (assets.splash_bytes if is_splash else assets.portrait_bytes)(artwork_filename)
       except (OSError, ValueError, HTTPException) as error:
         logging.warning("Artwork unavailable for %s: %s", champion["name"], error)
         self.send_json(503, {"error": "Artwork unavailable"}); return
@@ -119,7 +121,7 @@ class Handler(BaseHTTPRequestHandler):
       draft:Draft = validate_draft(value, self.champion_ids)
     except ValueError as error: self.send_json(400, {"error": str(error)}); return
     if path == "/api/drafts":
-      try: saved:storage.SavedDraft = storage.save_draft(name, draft, self.version, self.drafts_directory)
+      try: saved:storage.SavedDraft = storage.save_draft(name, draft, self.drafts_directory)
       except OSError as error:
         logging.warning("Could not save draft: %s", error)
         self.send_json(500, {"error": "Could not save this draft to disk."}); return

@@ -11,11 +11,24 @@ from http.server import ThreadingHTTPServer
 from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import TypedDict
 from unittest.mock import patch
 import assets
 import bridge
 from draft import Draft
 from server import Handler
+
+class BootstrapChampion(TypedDict):
+  id:int
+  name:str
+  roles:list[str]
+  portrait_url:str|None
+  splash_url:str|None
+
+class BootstrapData(TypedDict):
+  sol_version:int
+  champions:list[BootstrapChampion]
+  evaluation_available:bool
 
 class ServerTests(unittest.TestCase):
   def setUp(self:ServerTests)->None:
@@ -25,7 +38,10 @@ class ServerTests(unittest.TestCase):
     self.server = ThreadingHTTPServer(("127.0.0.1", 0), self.handler)
     self.thread = threading.Thread(target=lambda: self.server.serve_forever(poll_interval=.01), daemon=True)
     self.thread.start()
-    self.draft:Draft = {side: {"picks": [None] * 5, "bans": [None] * 5} for side in ("blue", "red")}
+    self.draft:Draft = {
+      "blue": {"picks": [None] * 5, "bans": [None] * 5},
+      "red": {"picks": [None] * 5, "bans": [None] * 5},
+    }
 
   def tearDown(self:ServerTests)->None:
     self.server.shutdown(); self.server.server_close(); self.thread.join()
@@ -53,6 +69,7 @@ class ServerTests(unittest.TestCase):
     status, body, _ = self.save({"name": "  Match one  ", "draft": self.draft})
     saved:dict[str, object] = json.loads(body); path:str = f"/api/drafts/{saved['id']}"
     self.assertEqual(status, 201); self.assertEqual(saved["name"], "Match one"); self.assertEqual(saved["draft"], self.draft)
+    self.assertNotIn("sol_version", saved)
     self.assertEqual(json.loads((self.directory / f"{saved['id']}.json").read_bytes()), saved)
     self.server.shutdown(); self.server.server_close(); self.thread.join()
     self.server = ThreadingHTTPServer(("127.0.0.1", 0), self.handler)
@@ -98,17 +115,17 @@ class ServerTests(unittest.TestCase):
   def test_bootstrap_preserves_sol_ids_and_reports_availability(self:ServerTests)->None:
     status:int; body:bytes; headers:dict[str, str]
     status, body, headers = self.request("GET", "/api/bootstrap")
-    data:dict[str, object] = json.loads(body)
+    data:BootstrapData = json.loads(body)
     self.assertEqual(status, 200); self.assertFalse(data["evaluation_available"])
-    wukong:dict[str, object] = next(champion for champion in data["champions"] if champion["name"] == "Wukong")
+    wukong:BootstrapChampion = next(champion for champion in data["champions"] if champion["name"] == "Wukong")
     self.assertEqual(wukong["id"], 157); self.assertEqual(wukong["portrait_url"], f"/portraits/{assets.ASSET_VERSION}/157.png")
     self.assertEqual(wukong["splash_url"], f"/splashes/{assets.ASSET_VERSION}/157.jpg")
-    missing:dict[str, object] = next(champion for champion in data["champions"] if champion["name"] == "Aatrox")
+    missing:BootstrapChampion = next(champion for champion in data["champions"] if champion["name"] == "Aatrox")
     self.assertIsNone(missing["portrait_url"]); self.assertIsNone(missing["splash_url"])
     self.assertEqual(headers["Cache-Control"], "no-store")
 
   def test_static_routes_and_head(self:ServerTests)->None:
-    for path in ("/", "/app.js", "/draft.mjs", "/styles.css", "/outfit-latin.woff2"):
+    for path in ("/", "/app.js", "/draft.mjs", "/draft-file.mjs", "/styles.css", "/outfit-latin.woff2"):
       status, body, _ = self.request("GET", path)
       with self.subTest(path=path): self.assertEqual(status, 200); self.assertTrue(body)
     _, body, headers = self.request("GET", "/outfit-latin.woff2")

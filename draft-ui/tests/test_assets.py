@@ -7,8 +7,17 @@ from http.client import IncompleteRead
 from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import TypedDict
 from unittest.mock import patch
 import assets
+
+class CatalogueEntry(TypedDict):
+  name:str
+  image:dict[str, str]
+
+class CatalogueData(TypedDict):
+  version:str
+  data:dict[str, CatalogueEntry]
 
 PNG:bytes = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a4ZkAAAAASUVORK5CYII=")
 JPEG:bytes = base64.b64decode(
@@ -37,7 +46,7 @@ class AssetTests(unittest.TestCase):
 
   def test_catalogue_rejects_wrong_version_paths_and_collisions(self:AssetTests)->None:
     for mutate in ("version", "filename", "collision", "empty"):
-      data:dict[str, object] = json.loads(CATALOGUE)
+      data:CatalogueData = json.loads(CATALOGUE)
       if mutate == "version": data["version"] = "wrong"
       if mutate == "filename": data["data"]["Chogath"]["image"]["full"] = "../Chogath.png"
       if mutate == "collision": data["data"]["Chogath"]["name"] = "Wu kong"
@@ -107,5 +116,7 @@ class AssetTests(unittest.TestCase):
     self.assertEqual(path.read_bytes(), PNG); self.assertEqual(list(self.cache.iterdir()), [path])
 
   def test_download_checks_declared_length(self:AssetTests)->None:
-    response = BytesIO(PNG); response.headers = {"Content-Length": str(len(PNG) + 1)}
+    class Response(BytesIO):
+      headers:dict[str, str]
+    response = Response(PNG); response.headers = {"Content-Length": str(len(PNG) + 1)}
     with patch("assets.urlopen", return_value=response), self.assertRaises(OSError): assets.fetch_bytes("https://example.test")

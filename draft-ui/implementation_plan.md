@@ -17,6 +17,7 @@ All production code stays directly under `draft-ui/`:
 | `bridge.py` | Connect repository metadata and future inference | Sol IDs remain authoritative; evaluator availability is truthful |
 | `assets.py` | Fetch and cache Riot artwork | Validated downloads are published atomically |
 | `draft.mjs` | Apply draft edits | Slot counts and champion uniqueness remain valid |
+| `draft-file.mjs` | Convert named draft JSON for file import/export | Version and champion names are validated before replacing the open draft |
 | `app.js` | Handle DOM events, rendering, and requests | The screen reflects the current draft; stale results are discarded |
 | `index.html` | Define accessible page structure | Controls have labels and stable containers |
 | `styles.css` | Define layout and appearance | The roster scrolls independently of the teams |

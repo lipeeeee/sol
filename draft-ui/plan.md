@@ -47,7 +47,8 @@ Interaction rules:
 - B1/R1 labels describe pick positions. The editor never assigns roles; the drafting agent searches possible role configurations.
 - Replacing or clearing a champion preserves all other slot positions.
 - Search matches names without sensitivity to case or punctuation. Role filters combine with search; clicking the active role again resets the filter. There is no All button. View changes preserve the draft, filter, search, and pending selection.
-- Keep the active draft in memory. Save named snapshots as separate JSON files in the ignored `draft-ui/drafts/` directory. List, load, and delete snapshots through the local server; loading preserves exact partial slots and evaluates with the current Sol version. Reloading starts a fresh active draft while saved snapshots survive reloads and server restarts.
+- Keep the active draft in memory. Save Draft saves snapshots as separate JSON files in the ignored `draft-ui/drafts/` directory, with an optional name suggested from B1, R1 and R2 or the current time. Import Draft shows a compact list; double-clicking a saved draft loads it. List, load, and delete snapshots through the local server; loading preserves exact partial slots and evaluates with the current Sol version. Reloading starts a fresh active draft while saved snapshots survive reloads and server restarts.
+- Allow the open draft to be downloaded as JSON with champion names and imported from an external file when those champions are available. Draft files do not need a Sol version. Reject malformed files without changing the open draft.
 
 Use keyboard-accessible controls and visible focus states. Empty pick cards show only their slot labels; omit the footer, pick counts, selection badge, pool status row, and individual clear button. Target desktop layouts at 1920x1080 and 1366x768, with a stacked layout on narrower screens.
 
@@ -73,7 +74,7 @@ Use Riot's versioned champion catalogue and square portraits from [Data Dragon](
 - Pin that asset version independently of the Sol version.
 - Match normalized display names and read `image.full`; this handles filenames such as Wukong's `MonkeyKing.png`.
 - Cache catalogue data and requested artwork under the UI's ignored `.cache/` directory.
-- Fetch each portrait or default splash on first use, then serve it locally. Splash URLs are unversioned. Cached artwork works offline; failed splashes fall back to square portraits, then named placeholders.
+- Fetch each portrait or default splash on first use, then serve it locally. Start a splash request when a champion is hovered, focused, or selected; show its portrait in a pick cell until the splash is ready. Keep recently requested splashes in browser memory. Splash URLs are unversioned. Cached artwork works offline; failed splashes fall back to square portraits, then named placeholders.
 - Download only the catalogue and artwork used by the page.
 
 **Evaluation**

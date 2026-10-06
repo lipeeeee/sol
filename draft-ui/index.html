@@ -16,13 +16,36 @@
       <span class="local-badge"><span aria-hidden="true"></span> LOCAL <b id="sol-version">Sol</b></span>
       <button id="clear-draft" type="button" disabled>Clear draft</button>
       <div class="draft-file-actions" role="group" aria-label="Draft files">
-        <button id="save-draft" type="button" disabled>Save</button>
-        <button id="load-draft" type="button" disabled>Load</button>
+        <button id="export-draft" type="button" disabled>Save Draft</button>
+        <button id="import-draft" type="button" disabled>Import Draft</button>
       </div>
-      <input id="draft-file" type="file" accept=".json,application/json" hidden>
     </div>
   </header>
-  <p id="storage-status" role="status" aria-live="polite" hidden></p>
+  <dialog id="draft-dialog" class="draft-dialog" aria-labelledby="draft-dialog-title">
+    <div class="draft-dialog-header">
+      <h2 id="draft-dialog-title">Save Draft</h2>
+      <button id="close-draft-dialog" type="button" aria-label="Close draft window">×</button>
+    </div>
+    <div class="draft-dialog-content">
+      <div id="export-panel">
+        <form id="save-draft-form" class="export-draft-form">
+          <input id="draft-name" type="text" maxlength="80" autocomplete="off" aria-label="Draft name (optional)" placeholder="Draft name (optional)">
+          <button id="save-draft" class="primary-action" type="submit" disabled>Save</button>
+        </form>
+        <button id="download-draft" class="quiet-action" type="button" disabled>Download .json</button>
+      </div>
+      <div id="import-panel" hidden>
+        <select id="saved-drafts" size="6" aria-label="Saved drafts" title="Double-click a draft to import" disabled><option value="">No saved drafts</option></select>
+        <div class="import-draft-actions">
+          <button id="load-draft" class="primary-action" type="button" disabled>Import</button>
+          <button id="delete-draft" type="button" disabled>Delete</button>
+        </div>
+        <button id="choose-draft-file" class="quiet-action" type="button" disabled>Choose .json file</button>
+        <input id="draft-file" type="file" accept=".json,application/json" hidden>
+      </div>
+      <p id="storage-status" role="status" aria-live="polite" hidden></p>
+    </div>
+  </dialog>
   <main class="workspace" aria-label="Draft editor">
     <section class="team blue" data-side="blue" aria-label="Blue side picks and bans">
       <div class="picks" id="blue-picks"></div>
@@ -58,7 +81,7 @@
     </section>
   </main>
   <template id="pick-template">
-    <article class="pick-slot"><button type="button" class="pick-select" aria-keyshortcuts="Delete"><span class="slot-art"><span class="slot-placeholder" aria-hidden="true"></span><img alt="" hidden></span><span class="pick-copy"><span class="slot-label"></span><strong class="champion-name"></strong></span></button></article>
+    <article class="pick-slot"><button type="button" class="pick-select" aria-keyshortcuts="Delete"><span class="slot-art"><img alt="" hidden></span><span class="pick-copy"><span class="slot-label"></span><strong class="champion-name"></strong></span></button></article>
   </template>
   <template id="ban-template">
     <button class="ban-slot" type="button" aria-keyshortcuts="Delete"><span class="slot-art">
