@@ -29,15 +29,26 @@ class SolDataset():
           if SAFE_DATA_PARSING: assert batch[10]["side"] == "Blue" and batch[11]["side"] == "Red"
 
           self._data["gameid"][game_id] = batch[0]["gameid"]
+          self._data["url"][game_id] = batch[0]["url"] # this is mainly for LPL games
+          self._data["league"][game_id] = batch[0]["league"]
+          self._data["year"][game_id] = batch[0]["year"] # NOTE: date is a better way to track `year`
+          self._data["split"][game_id] = batch[0]["split"]
+          self._data["playoffs"][game_id] = batch[0]["playoffs"]
+          self._data["date"][game_id] = batch[0]["date"]
+          self._data["game"][game_id] = batch[0]["game"]
+          self._data["patch"][game_id] = batch[0]["patch"]
           self._data["datacompleteness"][game_id] = batch[0]["datacompleteness"]
           if SAFE_DATA_PARSING:
             assert batch[0]["gameid"] != ""; assert batch[0]["gameid"] == batch[11]["gameid"]
             assert batch[0]["datacompleteness"] in ("complete", "partial")
-
+            assert batch[0]["playoffs"] in ("1", "0"); assert batch[0]["game"] in ("1", "2", "3", "4", "5")
+            assert batch[0]["date"] != ""; assert batch[0]["patch"] != ""
+           
           self._data["champion"][game_id] = [row["champion"] for row in batch[:10]]  
           self._data["position"][game_id] = [row["position"] for row in batch[:10]]  
-          # print(batch[0].keys())
-          # NOTE: do some SAFE_DATA_PARSING stuff here
+          # if SAFE_DATA_PARSING:
+            # if not (batch[0]["position"] == "top" and batch[5]["position"] == "top"): print(batch[0]["champion"], batch[5]["champion"])
+            # assert batch[0]["position"] == "top" and batch[5]["position"] == "top"
 
           # can this storage be simplified?
           self._data["firstPick"][game_id][0] = "1" if batch[10]["firstPick"] == "" else batch[10]["firstPick"]
@@ -46,8 +57,8 @@ class SolDataset():
             if batch[10]["firstPick"] == "0": assert batch[11]["firstPick"] == "1"
             if batch[11]["firstPick"] == "0": assert batch[10]["firstPick"] == "1"
           
-          self._data["pick_order"][game_id] = [batch[10][f"pick{i}"] for i in range(1, 6)]
-          self._data["pick_order"][game_id] = [batch[11][f"pick{i}"] for i in range(1, 6)]
+          self._data["pick_order"][game_id][0] = [batch[10][f"pick{i}"] for i in range(1, 6)]
+          self._data["pick_order"][game_id][1] = [batch[11][f"pick{i}"] for i in range(1, 6)]
 
           game_id += 1
 
