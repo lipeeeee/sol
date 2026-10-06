@@ -26,7 +26,8 @@ class SolDataset():
       with csv_path.open(mode="r", newline="", encoding="utf-8-sig") as file:
         reader = csv.DictReader(file)
         while batch := list(islice(reader, 12)):
-          if SAFE_DATA_PARSING: assert batch[10]["side"] == "Blue" and batch[11]["side"] == "Red"
+          if SAFE_DATA_PARSING:
+            assert len(batch) == 12; assert [row["side"] for row in batch] == ["Blue"] * 5 + ["Red"] * 5 + ["Blue", "Red"]
 
           self._data["gameid"][game_id] = batch[0]["gameid"]
           self._data["url"][game_id] = batch[0]["url"] # this is mainly for LPL games
@@ -43,21 +44,23 @@ class SolDataset():
             assert batch[0]["datacompleteness"] in ("complete", "partial")
             assert batch[0]["playoffs"] in ("1", "0"); assert batch[0]["game"] in ("1", "2", "3", "4", "5")
             assert batch[0]["date"] != ""; assert batch[0]["patch"] != ""
-           
+
           self._data["champion"][game_id] = [row["champion"] for row in batch[:10]]  
           self._data["position"][game_id] = [row["position"] for row in batch[:10]]  
-          # if SAFE_DATA_PARSING:
+          if SAFE_DATA_PARSING:
+            ...
             # if not (batch[0]["position"] == "top" and batch[5]["position"] == "top"): print(batch[0]["champion"], batch[5]["champion"])
             # assert batch[0]["position"] == "top" and batch[5]["position"] == "top"
 
-          # can this storage be simplified?
+          # NOTE: firstPick is assumed to blue if none are presented!
           self._data["firstPick"][game_id][0] = "1" if batch[10]["firstPick"] == "" else batch[10]["firstPick"]
           self._data["firstPick"][game_id][1] = "0" if batch[11]["firstPick"] == "" else batch[11]["firstPick"]
           if SAFE_DATA_PARSING:
             if batch[10]["firstPick"] == "0": assert batch[11]["firstPick"] == "1"
             if batch[11]["firstPick"] == "0": assert batch[10]["firstPick"] == "1"
             assert self._data["firstPick"][game_id][0] != self._data["firstPick"][game_id][1]
-          
+            assert tuple(row["firstPick"] for row in batch[10:]) in (("1", "0"), ("0", "1"), ("", ""))
+
           self._data["pick_order"][game_id][0] = [batch[10][f"pick{i}"] for i in range(1, 6)]
           self._data["pick_order"][game_id][1] = [batch[11][f"pick{i}"] for i in range(1, 6)]
 
