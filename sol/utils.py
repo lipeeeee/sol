@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Callable, ClassVar, Generic, TypeVar
+from typing import Any, ClassVar, Generic, TypeVar
 import os
 
 T = TypeVar("T")
@@ -23,4 +23,10 @@ class ContextVar(Generic[T]):
 
 DEBUG = ContextVar("DEBUG", 0)
 SAFE_DATA_PARSING = ContextVar("SAFE_DATA_PARSING", 1)
+
+# **** regular checks for sol ****
+try:
+  import torch; assert torch.cuda.is_available()
+except AssertionError:
+  if DEBUG >= 1: print("cuda isn't available!")
 

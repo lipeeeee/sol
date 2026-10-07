@@ -5,6 +5,8 @@ from itertools import islice
 from collections import defaultdict
 import csv
 
+SolData = dict[str, defaultdict] # gameid: data
+
 class SolDataset():
   def __init__(self, data_folder:str|Path="./data", device="cuda"):
     self.data_folder:Path = data_folder if isinstance(data_folder, Path) else Path(data_folder)
@@ -12,7 +14,7 @@ class SolDataset():
     assert not self.found_csv is None and len(self.found_csv) > 0, f"could not find any .csv in {data_folder}"
     if DEBUG >= 4: print(len(self.found_csv), "csv's found for dataset")
     self.device:str = device
-    self._data:dict[str, defaultdict] = defaultdict(lambda: defaultdict(dict))
+    self._data:SolData = defaultdict(lambda: defaultdict(dict))
 
   def extract_base_data(self): # everything in csv's
     # blue is side 0, red is side 1; batch[10] and batch[11] are the team rows
@@ -51,16 +53,27 @@ class SolDataset():
             self._data["ban_order"][game_id][side] = [row[f"ban{i}"] for i in range(1, 6)]
             for field in team_fields: self._data[f"team_{field}"][game_id][side] = row[field]
           if SAFE_DATA_PARSING: assert tuple(row["firstPick"] for row in batch[10:]) in (("1", "0"), ("0", "1"), ("", ""))
-
           game_id += 1
+      
+      if DEBUG >= 3: print(f"extracted {game_id} games's base csv data")
+      return self
 
   def write_disk(self, path:str|Path):
     pass
   def read_disk(self, path:str|Path):
     pass
 
+def split_games(data:SolData, train=0.8, valid=0.1): # train, validation, test
+  assert train > 0 and valid > 0 and train + valid < 1
+  assert all(key in data for key in ("date", "gameid"))
+  dates, ids = data["date"], data["gameid"]
+  assert all(g in dates for g in ids), "missing game dates"
+  indices = sorted(ids, key=lambda g: (dates[g], ids[g]))
+  train_end = int(len(indices) * train)
+  valid_end = int(len(indices) * (train + valid))
+  assert 0 < train_end < valid_end < len(indices), "not enough games for this split"
+  return indices[:train_end], indices[train_end:valid_end], indices[valid_end:]
 
 if __name__ == "__main__":
   s = SolDataset()
   s.extract_base_data()
-  print(s._data.keys())
