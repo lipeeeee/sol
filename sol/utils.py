@@ -22,6 +22,7 @@ class ContextVar(Generic[T]):
   def __repr__(self): return str(self.value)
 
 DEBUG = ContextVar("DEBUG", 0)
+TRAINING = ContextVar("TRAINING", 0)
 SAFE_DATA_PARSING = ContextVar("SAFE_DATA_PARSING", 1)
 
 # **** regular checks for sol ****

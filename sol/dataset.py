@@ -55,8 +55,11 @@ class SolDataset():
           if SAFE_DATA_PARSING: assert tuple(row["firstPick"] for row in batch[10:]) in (("1", "0"), ("0", "1"), ("", ""))
           game_id += 1
       
-      if DEBUG >= 3: print(f"extracted {game_id} games's base csv data")
-      return self
+    if DEBUG >= 3: print(f"extracted {game_id} games's base csv data")
+    return self
+
+  @property
+  def data(self): return self._data
 
   def write_disk(self, path:str|Path):
     pass
