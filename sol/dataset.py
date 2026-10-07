@@ -36,6 +36,8 @@ class SolDataset():
 
           for field in match_fields: self._data[field][game_id] = batch[0][field]
           if SAFE_DATA_PARSING:
+            if batch[0]["game"] == "": batch[0]["game"] = "1"
+            if batch[0]["patch"] == "": continue
             assert batch[0]["gameid"] != ""; assert all(row["gameid"] == batch[0]["gameid"] for row in batch)
             assert batch[0]["datacompleteness"] in ("complete", "partial")
             assert batch[0]["playoffs"] in ("1", "0"); assert batch[0]["game"] in ("1", "2", "3", "4", "5")

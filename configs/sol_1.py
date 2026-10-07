@@ -17,9 +17,13 @@ class Sol_1(nn.Module):
 
   def define(self) -> Self:
     self.activation = nn.GELU()
+    self.dropout = nn.Dropout(0.2)
     self.champ_emb = nn.Embedding(max(CHAMPION_IDS.values()) + 1, 32)
+
     self.ln1 = nn.Linear(32 * 10 + 1, 256)
-    self.ln2 = nn.Linear(256, 256)
+    self.ln2 = nn.Linear(256, 2048)
+    self.ln3 = nn.Linear(2048, 2048)
+    self.ln4 = nn.Linear(2048, 256)
     self.out = nn.Linear(256, 1)
     self.sigmoid = nn.Sigmoid()
     return self
@@ -27,17 +31,17 @@ class Sol_1(nn.Module):
   def forward(self, champ:Tensor, firstPick:Tensor):
     champ = self.champ_emb(champ).flatten(1)
     x = torch.concat((champ, firstPick), dim=1)
-    x = self.activation(self.ln1(x))
-    x = self.activation(self.ln2(x))
+    x = self.dropout(self.activation(self.ln1(x)))
+    x = self.dropout(self.activation(self.ln2(x)))
+    x = self.dropout(self.activation(self.ln3(x)))
+    x = self.dropout(self.activation(self.ln4(x)))
     return self.sigmoid(self.out(x)).squeeze(-1)
 model = Sol_1().to(_device)
 if DEBUG >= 1: print(model)
 
-
 def calculate_loss(predictions:Tensor, batch:dict) -> Tensor:
   assert isinstance(predictions, Tensor); assert isinstance(batch, dict)
   return nn.functional.binary_cross_entropy(predictions, batch["result"])
-
 
 if TRAINING:
   sd = SolDataset().extract_base_data()
