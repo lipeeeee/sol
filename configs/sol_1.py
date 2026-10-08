@@ -7,7 +7,7 @@ from torch import Tensor, nn
 
 dtype = torch.float32
 training_params = {"device": "cuda"}
-_device = training_params["device"] # NOTE: still dk how i feel about this shortcut
+_device = training_params["device"]
 inputs = ["champion", "firstPick"]
 
 class Sol_1(nn.Module):
@@ -22,8 +22,7 @@ class Sol_1(nn.Module):
 
     self.ln1 = nn.Linear(32 * 10 + 1, 256)
     self.ln2 = nn.Linear(256, 2048)
-    self.ln3 = nn.Linear(2048, 2048)
-    self.ln4 = nn.Linear(2048, 256)
+    self.ln3 = nn.Linear(2048, 256)
     self.out = nn.Linear(256, 1)
     self.sigmoid = nn.Sigmoid()
     return self
@@ -34,17 +33,16 @@ class Sol_1(nn.Module):
     x = self.dropout(self.activation(self.ln1(x)))
     x = self.dropout(self.activation(self.ln2(x)))
     x = self.dropout(self.activation(self.ln3(x)))
-    x = self.dropout(self.activation(self.ln4(x)))
     return self.sigmoid(self.out(x)).squeeze(-1)
 model = Sol_1().to(_device)
-if DEBUG >= 1: print(model)
+if DEBUG >= 1: print(model, count_params(model))
 
 def calculate_loss(predictions:Tensor, batch:dict) -> Tensor:
   assert isinstance(predictions, Tensor); assert isinstance(batch, dict)
   return nn.functional.binary_cross_entropy(predictions, batch["result"])
 
 if TRAINING:
-  sd = SolDataset().extract_base_data()
+  sd = SolDataset().extract_base_data(inputs)
   datasets = []
   for indices in split_games(sd.data):
     datasets.append({
@@ -52,6 +50,7 @@ if TRAINING:
       "firstPick": torch.tensor([[float(sd.data["firstPick"][g][0])] for g in indices], dtype=dtype, device=_device),
       "result": torch.tensor([float(sd.data["team_result"][g][0]) for g in indices], dtype=dtype, device=_device)
     })
+  del sd
 
   if DEBUG >= 2:
     for name, dataset in zip(("train", "valid", "test"), datasets):
