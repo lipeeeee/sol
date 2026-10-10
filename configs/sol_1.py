@@ -46,7 +46,7 @@ if TRAINING:
   try:
     sd = sd.read_disk("./data/dataset_sol_1.pkl")
   except FileNotFoundError:
-    sd = sd.extract_base_data(inputs).write_disk("./data/dataset_sol_1.pkl")
+    sd = sd.extract_base_data(requested_fields=inputs).write_disk("./data/dataset_sol_1.pkl")
   datasets = []
   for indices in split_games(sd.data):
     datasets.append({

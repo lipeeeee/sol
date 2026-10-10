@@ -11,21 +11,22 @@ import csv
 SolData = dict[str, defaultdict] # field_name: {gameid: data}
 
 class SolDataset():
-  def __init__(self, data_folder:str|Path="./data", check_cache=True):
-    self.data_folder:Path = data_folder if isinstance(data_folder, Path) else Path(data_folder)
-    self.found_csv:list[Path] = sorted(self.data_folder.glob("*.csv"))
-    assert not self.found_csv is None and len(self.found_csv) > 0, f"could not find any .csv in {data_folder}"
-    if DEBUG >= 4: print(len(self.found_csv), "csv's found for dataset")
+  def __init__(self):
     self._data:SolData = defaultdict(mk_defaultdict) # mk_defaultdict is a hack to allow pickle encoding
 
   REQUIRED_FIELDS:set[str] = {"gameid", "result", "date", "patch", "champion", "position", "firstPick", "pick_order" }
-  def extract_base_data(self, requested_fields:list[str]|None=None): # everything in csv's
+  def extract_base_data(self, data_folder:str|Path="./data", requested_fields:list[str]|None=None): # everything in csv's
+    data_folder = data_folder if isinstance(data_folder, Path) else Path(data_folder)
+    found_csv:list[Path] = sorted(data_folder.glob("*.csv"))
+    assert not found_csv is None and len(found_csv) > 0, f"could not find any .csv in {data_folder}"
+    if DEBUG >= 4: print(len(found_csv), "csv's found for dataset")
+
     # blue is side 0, red is side 1; batch[10] and batch[11] are the team rows
     game_id = 0
     role_order = ["top", "jng", "mid", "bot", "sup"]
     match_fields:list[str] = ["gameid", "url", "league", "year", "split", "playoffs", "date", "game", "patch", "datacompleteness"]
     fields_to_parse = self.REQUIRED_FIELDS | set(requested_fields or ())
-    for csv_path in self.found_csv:
+    for csv_path in found_csv:
       if DEBUG >= 4: print(f"extracting_base_data({csv_path}), with: {fields_to_parse}")
       with csv_path.open(mode="r", newline="", encoding="utf-8-sig") as file:
         reader = csv.DictReader(file)
