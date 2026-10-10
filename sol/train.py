@@ -42,7 +42,6 @@ train_loader, valid_loader, test_loader = [ # NOTE: we only shuffle train
   for index, data in enumerate(sol.datasets)
 ]
 assert all(len(loader.dataset) > 0 for loader in (train_loader, valid_loader, test_loader)), "dataset splits must not be empty"
-
 checkpoint_path = Path(training_config["checkpoint_path"])
 checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
 best_valid_loss = float("inf")

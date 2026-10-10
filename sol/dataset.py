@@ -1,19 +1,22 @@
 # iteration agnostic, lazy loaded dataset. (design is kinda pretty)
+from typing import Self
+
 from sol.utils import *
 from pathlib import Path
 from itertools import islice
 from collections import defaultdict
+import pickle, os
 import csv
 
 SolData = dict[str, defaultdict] # field_name: {gameid: data}
 
 class SolDataset():
-  def __init__(self, data_folder:str|Path="./data"):
+  def __init__(self, data_folder:str|Path="./data", check_cache=True):
     self.data_folder:Path = data_folder if isinstance(data_folder, Path) else Path(data_folder)
     self.found_csv:list[Path] = sorted(self.data_folder.glob("*.csv"))
     assert not self.found_csv is None and len(self.found_csv) > 0, f"could not find any .csv in {data_folder}"
     if DEBUG >= 4: print(len(self.found_csv), "csv's found for dataset")
-    self._data:SolData = defaultdict(lambda: defaultdict(dict))
+    self._data:SolData = defaultdict(mk_defaultdict) # mk_defaultdict is a hack to allow pickle encoding
 
   REQUIRED_FIELDS:set[str] = {"gameid", "result", "date", "patch", "champion", "position", "firstPick", "pick_order" }
   def extract_base_data(self, requested_fields:list[str]|None=None): # everything in csv's
@@ -71,10 +74,16 @@ class SolDataset():
   @property
   def data(self): return self._data
 
-  def write_disk(self, path:str|Path):
-    pass
-  def read_disk(self, path:str|Path):
-    pass
+  def write_disk(self, path:str|Path="./data/dataset_cache.pkl") -> Self:
+    with open(path, mode="wb") as f:
+      pickle.dump(self._data, f, protocol=4)
+      if DEBUG >= 3: print(f"saved dataset to disk \"{path}\" ({self._data.keys()})")
+    return self
+  def read_disk(self, path:str|Path="./data/dataset_cache.pkl") -> Self:
+    with open(path, mode="rb") as f:
+      self._data = pickle.load(f)
+      if DEBUG >= 3: print(f"loaded dataset from disk \"{path}\" ({self._data.keys()})")
+    return self
 
 def split_games(data:SolData, train=0.8, valid=0.1): # train, validation, test
   assert train > 0 and valid > 0 and train + valid < 1

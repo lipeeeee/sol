@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections import defaultdict
 from typing import Any, ClassVar, Generic, TypeVar
 import os
 
@@ -34,3 +35,4 @@ except AssertionError:
 # **** random utils ****
 # (all_params, trainable_params)
 def count_params(model): return (sum(p.numel() for p in model.parameters()), sum(p.numel() for p in model.parameters() if p.requires_grad))
+def mk_defaultdict(): return defaultdict(dict) # hack: allows pickle to encode defaultdict lambdas
