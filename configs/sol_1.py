@@ -8,7 +8,7 @@ from torch import Tensor, nn, optim
 
 dtype = torch.float32
 training_params = {
-  "optimizer": partial(optim.AdamW, lr=1e-3, weight_decay=0.2),
+  "optimizer": partial(optim.Adam, lr=1e-3, weight_decay=0.0),
   "device": "cuda"
 }
 _device = training_params["device"]
@@ -24,22 +24,21 @@ class Sol_1(nn.Module):
     self.dropout = nn.Dropout(0.2)
     self.champ_emb = nn.Embedding(max(CHAMPION_IDS.values()) + 1, 32)
 
-    self.ln1 = nn.Linear(32 * 10 + 1, 32)
-    self.out = nn.Linear(32, 1)
-    self.sigmoid = nn.Sigmoid()
+    self.ln1 = nn.Linear(32 * 10 + 1, 4)
+    self.out = nn.Linear(4, 1)
     return self
 
   def forward(self, champ:Tensor, firstPick:Tensor):
     champ = self.champ_emb(champ).flatten(1)
     x = torch.concat((champ, firstPick), dim=1)
     x = self.dropout(self.activation(self.ln1(x)))
-    return self.sigmoid(self.out(x)).squeeze(-1)
+    return (self.out(x)).squeeze(-1)
 model = Sol_1().to(_device)
 if DEBUG >= 1: print(model, count_params(model))
 
 def calculate_loss(predictions:Tensor, batch:dict) -> Tensor:
   assert isinstance(predictions, Tensor); assert isinstance(batch, dict)
-  return nn.functional.binary_cross_entropy(predictions, batch["result"])
+  return nn.functional.binary_cross_entropy_with_logits(predictions, batch["result"])
 
 if TRAINING:
   sd = SolDataset()

@@ -61,7 +61,7 @@ def evaluate(loader:DataLoader) -> tuple[float, float]:
     batch_size = len(batch[sol.inputs[0]])
     total_loss += loss.item() * batch_size
     total_samples += batch_size
-    total_correct += ((predictions >= 0.5) == batch["result"].bool()).sum().item()
+    total_correct += ((predictions >= 0) == batch["result"].bool()).sum().item()
   return total_loss / total_samples, total_correct / total_samples
 
 for epoch in range(training_config["epochs"]):
@@ -80,7 +80,7 @@ for epoch in range(training_config["epochs"]):
     batch_size = len(batch[sol.inputs[0]])
     total_loss += loss.detach().item() * batch_size
     total_samples += batch_size
-    total_correct += ((predictions.detach() >= 0.5) == batch["result"].bool()).sum().item()
+    total_correct += ((predictions.detach() >= 0) == batch["result"].bool()).sum().item()
 
   train_loss = total_loss / total_samples
   train_accuracy = total_correct / total_samples

@@ -1,6 +1,7 @@
 data/*
 build/*
 checkpoints/*
+experiments/*
 
 .sol_env
 
