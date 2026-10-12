@@ -1,4 +1,4 @@
-"""Additive champion-role strengths on competitive data."""
+"""Ultra-Slim Additive champion-role strengths, model weighs 3.5Kb"""
 from sol.utils import *
 from metadata.champion_ids import CHAMPION_IDS 
 from sol.dataset import SolDataset, split_games
