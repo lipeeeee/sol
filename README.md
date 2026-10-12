@@ -8,5 +8,5 @@ required flags to run are in `FLAGS.txt`
 ## Local draft editor
 
 ```sh
-python3 draft-ui/run.py <sol_model_version>
+python3 draft-ui/run.py <sol_modelVersion>
 ```

@@ -33,8 +33,9 @@ class BootstrapData(TypedDict):
 class ServerTests(unittest.TestCase):
   def setUp(self:ServerTests)->None:
     self.temporary = TemporaryDirectory(); self.directory = Path(self.temporary.name) / "drafts"
+    self.favorites_path = Path(self.temporary.name) / "favorites.json"
     self.handler = partial(Handler, version=1, champions=bridge.champions(), artwork={"wukong": "MonkeyKing.png"},
-                           drafts_directory=self.directory)
+                           drafts_directory=self.directory, favorites_path=self.favorites_path)
     self.server = ThreadingHTTPServer(("127.0.0.1", 0), self.handler)
     self.thread = threading.Thread(target=lambda: self.server.serve_forever(poll_interval=.01), daemon=True)
     self.thread.start()
@@ -89,6 +90,42 @@ class ServerTests(unittest.TestCase):
     self.assertEqual(self.request("DELETE", path)[0], 200)
     self.assertEqual(self.request("DELETE", path)[0], 404); self.assertEqual(self.request("GET", path)[0], 404)
     self.assertEqual(json.loads(self.request("GET", "/api/drafts")[1])["drafts"][0]["id"], second["id"])
+
+  def test_favorites_survive_a_server_restart_and_can_be_removed(self:ServerTests)->None:
+    self.assertEqual(json.loads(self.request("GET", "/api/favorites")[1]), {"favorites": []})
+    self.assertEqual(self.request("PUT", "/api/favorites/1")[0], 200)
+    self.assertEqual(json.loads(self.request("PUT", "/api/favorites/157")[1]), {"favorites": [1, 157]})
+    self.server.shutdown(); self.server.server_close(); self.thread.join()
+    self.server = ThreadingHTTPServer(("127.0.0.1", 0), self.handler)
+    self.thread = threading.Thread(target=lambda: self.server.serve_forever(poll_interval=.01), daemon=True)
+    self.thread.start()
+    status, body, headers = self.request("GET", "/api/favorites")
+    self.assertEqual(status, 200); self.assertEqual(json.loads(body), {"favorites": [1, 157]})
+    self.assertEqual(headers["Cache-Control"], "no-store")
+    for _ in range(2):
+      self.assertEqual(json.loads(self.request("DELETE", "/api/favorites/1")[1]), {"favorites": [157]})
+    self.assertEqual(json.loads(self.favorites_path.read_bytes()), [157]); self.assertFalse(self.directory.exists())
+
+  def test_invalid_favorite_paths_never_write_to_disk(self:ServerTests)->None:
+    for path in ("/api/favorites/999999", "/api/favorites/true", "/api/favorites/0", "/api/favorites/../README",
+                 "/api/favorites/%2e%2e%2fREADME", "/favorites.json", "/unknown"):
+      for method in ("PUT", "DELETE"):
+        with self.subTest(path=path, method=method): self.assertEqual(self.request(method, path)[0], 404)
+    self.assertEqual(self.request("GET", "/favorites.json")[0], 404)
+    self.assertFalse(self.favorites_path.exists())
+
+  def test_favorite_storage_failures_return_errors_and_preserve_disk_contents(self:ServerTests)->None:
+    self.request("PUT", "/api/favorites/1")
+    with patch("storage.atomic_write", side_effect=OSError("disk full")), self.assertLogs(level="WARNING"):
+      status, body, _ = self.request("PUT", "/api/favorites/157")
+    self.assertEqual(status, 500); self.assertIn("disk", json.loads(body)["error"])
+    self.assertEqual(json.loads(self.favorites_path.read_bytes()), [1])
+    self.favorites_path.write_text("{")
+    for method, path in (("GET", "/api/favorites"), ("PUT", "/api/favorites/157"), ("DELETE", "/api/favorites/1")):
+      with self.subTest(method=method), self.assertLogs(level="WARNING"):
+        status, body, _ = self.request(method, path)
+      self.assertEqual(status, 500); self.assertIn("disk", json.loads(body)["error"])
+    self.assertEqual(self.favorites_path.read_text(), "{")
 
   def test_invalid_saves_and_paths_never_write_to_disk(self:ServerTests)->None:
     for value in (None, {}, {"name": "Name"}, {"name": "Name", "draft": {}},

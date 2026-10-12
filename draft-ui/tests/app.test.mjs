@@ -11,8 +11,12 @@ const ids = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(([, id]) => id));
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function element(fragment = false) {
   const queries = new Map(), attributes = new Map();
+  let hidden = false;
   return {
     fragment, children: [], dataset: {}, style: {}, value: "", open: false, listeners: new Map(), classList: {toggle() {}},
+    offsetWidth: 150, offsetHeight: 36, selectionStart: null, selectionEnd: null,
+    get hidden() { return hidden; },
+    set hidden(value) { hidden = Boolean(value); },
     append(child) { this.children.push(...(child.fragment ? child.children : [child])); },
     replaceChildren(...children) { this.children = children; },
     querySelector(selector) { if (!queries.has(selector)) queries.set(selector, element()); return queries.get(selector); },
@@ -22,41 +26,69 @@ function element(fragment = false) {
     set src(value) { attributes.set("src", value); },
     get src() { return attributes.get("src") ?? ""; },
     addEventListener(name, handler) { this.listeners.set(name, handler); },
+    dispatchEvent(event) { this.listeners.get(event.type)?.(event); return true; },
+    closest() { return null; },
+    getBoundingClientRect() { return {left: 100, top: 200, right: 164, bottom: 264}; },
+    setRangeText(text, start, end) {
+      this.value = this.value.slice(0, start) + text + this.value.slice(end);
+      this.selectionStart = this.selectionEnd = start + text.length;
+    },
     cloneNode() { return element(); },
     click() { this.clicked = (this.clicked ?? 0) + 1; },
     showModal() { this.open = true; },
     close() { this.open = false; },
-    focus() { this.focused = true; }
+    focus() { this.focused = true; this.onFocus?.(); }
   };
 }
-async function setup(available = true, saved = [], listError = null) {
-  const elements = new Map(), requests = [], storageRequests = [], downloads = [], exportedBlobs = [], preloads = [];
+async function setup(available = true, saved = [], listError = null, favoriteIds = [], favoritesError = null) {
+  const elements = new Map(), requests = [], storageRequests = [], favoriteRequests = [], downloads = [], exportedBlobs = [], preloads = [];
   class PreloadImage {
     constructor() { preloads.push(this); }
   }
-  const get = id => { if (!elements.has(id)) elements.set(id, element()); return elements.get(id); };
+  const get = id => {
+    if (!elements.has(id)) {
+      const created = element(); created.onFocus = () => { document.activeElement = created; };
+      if (["search", "draft-name", "saved-drafts"].includes(id)) created.closest = selector =>
+        selector.includes(id === "saved-drafts" ? "select" : "input") ? created : null;
+      elements.set(id, created);
+    }
+    return elements.get(id);
+  };
   for (const id of ["pick-template", "ban-template", "champion-template"]) get(id).content = {firstElementChild: element()};
-  const document = {getElementById: id => ids.has(id) ? get(id) : null, querySelector: get, querySelectorAll: () => [],
+  get("champion-menu").hidden = true;
+  const document = {...element(), documentElement: {clientWidth: 1920, clientHeight: 1080},
+    getElementById: id => ids.has(id) ? get(id) : null, querySelector: get, querySelectorAll: () => [],
     createDocumentFragment: () => element(true), createElement: tag => {
       const created = element(); if (tag === "a") downloads.push(created); return created;
-    }};
+    }}, window = element();
   const fetch = (url, options) => {
     if (url === "/api/bootstrap") return Promise.resolve({ok: true, json: async () => ({sol_version: 1,
       evaluation_available: available, champions: ["Aatrox", "Ahri", "Akali"].map((name, i) => ({id: i + 1, name, roles: [],
         portrait_url: `/portraits/16.19.1/${i + 1}.png`, splash_url: `/splashes/16.19.1/${i + 1}.jpg`}))})});
     if (url === "/api/drafts" && !options) return Promise.resolve({ok: !listError,
       json: async () => listError ? {error: listError} : {drafts: saved.map(({draft, ...metadata}) => metadata)}});
+    if (url === "/api/favorites") return Promise.resolve({ok: !favoritesError,
+      json: async () => favoritesError ? {error: favoritesError} : {favorites: favoriteIds}});
+    if (url.startsWith("/api/favorites/")) return new Promise((resolve, reject) => favoriteRequests.push({url,
+      method: options.method, resolve, reject}));
     if (url.startsWith("/api/drafts")) return new Promise((resolve, reject) => storageRequests.push({url,
       method: options?.method ?? "GET", body: options?.body ? JSON.parse(options.body) : null, resolve, reject}));
     assert.equal(url, "/api/evaluate");
     return new Promise((resolve, reject) => requests.push({draft: JSON.parse(options.body), resolve, reject}));
   };
-  const context = createContext({document, fetch, ...draft, ...draftFile, Blob, Image: PreloadImage,
+  const context = createContext({document, window, fetch, ...draft, ...draftFile, Blob, Event, Image: PreloadImage,
     URL: {createObjectURL(blob) { exportedBlobs.push(blob); return "blob:draft"; }, revokeObjectURL() {}},
     setTimeout(callback) { callback(); }});
   runInContext(source, context); await tick();
-  const emit = (container, type, target, key) => get(container).listeners.get(type)({target: {closest: () => target},
-    key, preventDefault() {}});
+  const emit = (container, type, target, key, details = {}) => {
+    const event = {target: {closest: () => target}, key, defaultPrevented: false,
+      preventDefault() { this.defaultPrevented = true; }, ...details};
+    get(container).listeners.get(type)(event); return event;
+  };
+  const emitDocument = (type, target = get("brand"), details = {}) => {
+    const event = {target, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }, ...details};
+    document.listeners.get(type)(event); return event;
+  };
   const slot = (side, kind, index) => {
     const card = get(`${side}-${kind}`).children[index]; return kind === "picks" ? card.querySelector("button") : card;
   };
@@ -67,7 +99,7 @@ async function setup(available = true, saved = [], listError = null) {
   const respond = async (index, probability = .5) => {
     requests[index].resolve({ok: true, json: async () => ({blue_win_probability: probability})}); await tick();
   };
-  return {get, requests, storageRequests, downloads, exportedBlobs, preloads, choose, clickSlot, respond,
+  return {get, document, requests, storageRequests, favoriteRequests, downloads, exportedBlobs, preloads, choose, clickSlot, respond,
     state: runInContext("state", context),
     save: name => { get("draft-name").value = name; emit("draft-name", "input", get("draft-name"));
       emit("save-draft-form", "submit", get("save-draft-form")); },
@@ -77,6 +109,15 @@ async function setup(available = true, saved = [], listError = null) {
     deleteSaved: () => emit("delete-draft", "click", get("delete-draft")),
     respondStorage: async (index, value, ok = true) => {
       storageRequests[index].resolve({ok, json: async () => value}); await tick(); },
+    respondFavorite: async (index, value, ok = true) => {
+      favoriteRequests[index].resolve({ok, json: async () => value}); await tick(); },
+    favoriteMenu: (id, clientX = 150, clientY = 220) =>
+      emit("champions", "contextmenu", get("champions").children[id - 1], undefined, {clientX, clientY}),
+    toggleFavorite: () => emit("toggle-favorite", "click", get("toggle-favorite")),
+    type: (key, target, details = {}) => emitDocument("keydown", target, {key, ...details}),
+    paste: (text, target) => emitDocument("paste", target, {clipboardData: {getData: () => text}}),
+    outsideClick: () => emitDocument("pointerdown"),
+    scroll: () => emitDocument("scroll"),
     openExport: () => emit("export-draft", "click", get("export-draft")),
     openImport: () => emit("import-draft", "click", get("import-draft")),
     closeDialog: () => emit("close-draft-dialog", "click", get("close-draft-dialog")),
@@ -134,6 +175,108 @@ test("an unavailable evaluator leaves draft editing working without evaluation r
   assert.equal(app.requests.length, 0); assert.equal(app.state.pending, false);
   assert.equal(app.state.draft.blue.picks[0], 1);
   assert.equal(app.get("evaluation-status").textContent, "No evaluator is connected to Sol 1 yet.");
+});
+
+test("pool favorites load their stars and toggle without changing the draft or ordering", async () => {
+  const app = await setup(true, [], null, [2]); await app.respond(0, .62);
+  const buttons = [...app.get("champions").children];
+  assert.equal(buttons[0].querySelector(".favorite-star").hidden, true);
+  assert.equal(buttons[1].querySelector(".favorite-star").hidden, false);
+  assert.match(buttons[1].getAttribute("aria-label"), /favorite/);
+  app.choose(1, "blue", "picks", 0); await app.respond(1, .68);
+  const revision = app.state.revision;
+  assert.equal(buttons[0].disabled, true);
+  assert.equal(app.favoriteMenu(1).defaultPrevented, true);
+  assert.equal(app.get("champion-menu").hidden, false);
+  assert.equal(app.get("toggle-favorite").textContent, "Favorite");
+  app.toggleFavorite();
+  assert.equal(app.get("champion-menu").hidden, true);
+  assert.equal(app.favoriteRequests[0].url, "/api/favorites/1");
+  assert.equal(app.favoriteRequests[0].method, "PUT");
+  assert.equal(buttons[0].querySelector(".favorite-star").hidden, true);
+  await app.respondFavorite(0, {favorites: [1, 2]});
+  assert.equal(buttons[0].querySelector(".favorite-star").hidden, false);
+  app.favoriteMenu(1); assert.equal(app.get("toggle-favorite").textContent, "Unfavorite");
+  app.toggleFavorite(); assert.equal(app.favoriteRequests[1].method, "DELETE");
+  await app.respondFavorite(1, {favorites: [2]});
+  assert.equal(buttons[0].querySelector(".favorite-star").hidden, true);
+  assert.equal(app.state.draft.blue.picks[0], 1); assert.equal(app.state.revision, revision);
+  assert.equal(app.state.probability, .68); assert.equal(app.requests.length, 2);
+  assert.deepEqual(app.get("champions").children, buttons);
+});
+
+test("favorite failures preserve stars and drafting and let the next action retry", async () => {
+  const app = await setup(false, [], null, [1]);
+  const button = app.get("champions").children[0];
+  app.favoriteMenu(1); app.toggleFavorite(); await app.respondFavorite(0, {error: "Disk full"}, false);
+  assert.equal(button.querySelector(".favorite-star").hidden, false);
+  assert.equal(app.get("favorites-status").textContent, "Disk full");
+  app.choose(2, "blue", "picks", 0); assert.equal(app.state.draft.blue.picks[0], 2);
+  app.favoriteMenu(1); assert.equal(app.get("toggle-favorite").disabled, false);
+  app.toggleFavorite(); await app.respondFavorite(1, {favorites: []});
+  assert.equal(button.querySelector(".favorite-star").hidden, true);
+  assert.equal(app.get("favorites-status").hidden, true);
+  const failedLoad = await setup(false, [], null, [], "Could not read favorites.");
+  assert.equal(failedLoad.get("favorites-status").textContent, "Could not read favorites.");
+  failedLoad.choose(3, "red", "bans", 0); assert.equal(failedLoad.state.draft.red.bans[0], 3);
+});
+
+test("the favorite menu stays within the viewport and closes on Escape, outside clicks and scroll", async () => {
+  const app = await setup(false);
+  app.favoriteMenu(1, 1919, 1079);
+  assert.equal(app.get("champion-menu").style.left, "1762px");
+  assert.equal(app.get("champion-menu").style.top, "1036px");
+  assert.equal(app.type("Escape", app.get("toggle-favorite")).defaultPrevented, true);
+  assert.equal(app.get("champion-menu").hidden, true);
+  assert.equal(app.get("champions").children[0].focused, true);
+  app.favoriteMenu(1); app.outsideClick(); assert.equal(app.get("champion-menu").hidden, true);
+  app.favoriteMenu(1); app.scroll(); assert.equal(app.get("champion-menu").hidden, true);
+  app.favoriteMenu(1, 0, 0); assert.equal(app.get("champion-menu").style.top, "264px");
+  assert.equal(app.favoriteRequests.length, 0);
+});
+
+test("typing after a champion click focuses and filters search without losing the first character", async () => {
+  const app = await setup(false);
+  app.choose(1, "blue", "picks", 0);
+  const revision = app.state.revision;
+  assert.equal(app.type("A", app.get("blue-picks").children[0].querySelector("button")).defaultPrevented, true);
+  assert.equal(app.document.activeElement, app.get("search")); assert.equal(app.get("search").value, "A");
+  app.type("h"); assert.equal(app.get("search").value, "Ah"); assert.equal(app.state.search, "Ah");
+  assert.equal(app.get("pool-heading").textContent, "Champion pool(1)");
+  assert.equal(app.get("champions").children[0].hidden, true);
+  assert.equal(app.get("champions").children[1].hidden, false);
+  assert.equal(app.type("r", app.get("search")).defaultPrevented, false);
+  app.type("Backspace"); assert.equal(app.get("search").value, "A");
+  app.get("search").selectionStart = 0; app.get("search").selectionEnd = 1;
+  app.type("K"); assert.equal(app.get("search").value, "K");
+  app.favoriteMenu(3); app.type("a", app.get("toggle-favorite"));
+  assert.equal(app.get("champion-menu").hidden, true); assert.equal(app.get("search").value, "Ka");
+  assert.equal(app.state.draft.blue.picks[0], 1); assert.equal(app.state.revision, revision);
+});
+
+test("keyboard routing preserves dialogs, editable controls, navigation and browser shortcuts", async () => {
+  const app = await setup(false);
+  for (const [key, details] of [["c", {ctrlKey: true}], ["v", {metaKey: true}], ["a", {altKey: true}],
+    ["a", {isComposing: true}], ["a", {defaultPrevented: true}], ["Tab", {}], ["Enter", {}], [" ", {}],
+    ["Delete", {}], ["ArrowLeft", {}], ["Escape", {}]]) {
+    const event = app.type(key, undefined, details);
+    assert.equal(event.defaultPrevented, Boolean(details.defaultPrevented), key);
+  }
+  for (const target of [app.get("draft-name"), app.get("saved-drafts"), {isContentEditable: true}]) {
+    assert.equal(app.type("a", target).defaultPrevented, false);
+  }
+  app.openExport(); assert.equal(app.type("a").defaultPrevented, false);
+  assert.equal(app.paste("Ahri").defaultPrevented, false);
+  app.closeDialog(); assert.equal(app.get("search").value, "");
+});
+
+test("pasting after clicking outside a text field goes into champion search", async () => {
+  const app = await setup(false);
+  assert.equal(app.paste("Ahri").defaultPrevented, true);
+  assert.equal(app.document.activeElement, app.get("search")); assert.equal(app.state.search, "Ahri");
+  assert.equal(app.get("pool-heading").textContent, "Champion pool(1)");
+  assert.equal(app.paste("Akali", app.get("search")).defaultPrevented, false);
+  assert.equal(app.paste("Name", app.get("draft-name")).defaultPrevented, false);
 });
 
 const savedDraft = (id, name, snapshot = draft.emptyDraft()) => ({id, name,

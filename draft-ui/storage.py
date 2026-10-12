@@ -4,13 +4,16 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from threading import Lock
 from typing import TypedDict, cast
 from uuid import uuid4
 from draft import Draft, validate_draft
 
 DRAFTS:Path = Path(__file__).resolve().parent / "drafts"
+FAVORITES:Path = DRAFTS.with_name("favorites.json")
 DRAFT_ID:re.Pattern[str] = re.compile(r"[0-9a-f]{32}")
 SavedDraft = TypedDict("SavedDraft", {"id": str, "name": str, "saved_at": str, "draft": Draft})
+favorites_lock = Lock()
 
 def atomic_write(path:Path, data:bytes)->None:
   path.parent.mkdir(parents=True, exist_ok=True)
@@ -63,3 +66,23 @@ def list_drafts(champion_ids:frozenset[int], directory:Path=DRAFTS)->list[SavedD
   return sorted(saved, key=lambda draft: (draft["saved_at"], draft["id"]), reverse=True)
 
 def delete_draft(draft_id:str, directory:Path=DRAFTS)->None: draft_path(draft_id, directory).unlink()
+
+def load_favorites(champion_ids:frozenset[int], path:Path=FAVORITES)->list[int]:
+  try: value:object = json.loads(path.read_bytes())
+  except FileNotFoundError: return []
+  if not isinstance(value, list) or any(type(champion_id) is not int or champion_id not in champion_ids for champion_id in value):
+    raise ValueError("Favorites must contain known champion IDs")
+  if len(set(value)) != len(value): raise ValueError("Favorite champion IDs must be unique")
+  return sorted(value)
+
+def set_favorite(champion_id:int, favorite:bool, champion_ids:frozenset[int], path:Path=FAVORITES)->list[int]:
+  if type(champion_id) is not int or champion_id not in champion_ids: raise ValueError("Unknown champion ID")
+  if type(favorite) is not bool: raise ValueError("Expected a favorite flag")
+  # The threaded server must keep other champions' favorites when requests overlap.
+  with favorites_lock:
+    favorites:set[int] = set(load_favorites(champion_ids, path))
+    if favorite: favorites.add(champion_id)
+    else: favorites.discard(champion_id)
+    saved:list[int] = sorted(favorites)
+    atomic_write(path, (json.dumps(saved, indent=2) + "\n").encode())
+    return saved

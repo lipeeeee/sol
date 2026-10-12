@@ -25,17 +25,19 @@ STATIC:dict[str, tuple[str, str]] = {
 PORTRAIT:re.Pattern[str] = re.compile(rf"/portraits/{re.escape(assets.ASSET_VERSION)}/([1-9][0-9]*)\.png")
 SPLASH:re.Pattern[str] = re.compile(rf"/splashes/{re.escape(assets.ASSET_VERSION)}/([1-9][0-9]*)\.jpg")
 SAVED_DRAFT:re.Pattern[str] = re.compile(r"/api/drafts/([0-9a-f]{32})")
+FAVORITE:re.Pattern[str] = re.compile(r"/api/favorites/([1-9][0-9]*)")
 
 class Handler(BaseHTTPRequestHandler):
   def __init__(self:Handler, request:socket.socket, client_address:tuple[str, int], server:HTTPServer, *,
                version:int, champions:list[Champion], artwork:dict[str, str], evaluator:Evaluator|None=None,
-               drafts_directory:Path=storage.DRAFTS)->None:
+               drafts_directory:Path=storage.DRAFTS, favorites_path:Path=storage.FAVORITES)->None:
     self.version:int = version
     self.champions:list[Champion] = champions
     self.champion_ids:frozenset[int] = frozenset(champion["id"] for champion in champions)
     self.artwork:dict[str, str] = artwork
     self.evaluator:Evaluator|None = evaluator
     self.drafts_directory:Path = drafts_directory
+    self.favorites_path:Path = favorites_path
     super().__init__(request, client_address, server)
 
   def send_bytes(self:Handler, status:int, data:bytes, content_type:str, cache_control:str="no-store")->None:
@@ -70,6 +72,12 @@ class Handler(BaseHTTPRequestHandler):
       self.send_json(200, {"sol_version": self.version, "champions": champions,
                           "evaluation_available": self.evaluator is not None})
       return
+    if path == "/api/favorites":
+      try: favorites:list[int] = storage.load_favorites(self.champion_ids, self.favorites_path)
+      except (OSError, ValueError) as error:
+        logging.warning("Could not load favorite champions: %s", error)
+        self.send_json(500, {"error": "Could not read favorite champions from disk. Refresh to try again."}); return
+      self.send_json(200, {"favorites": favorites}); return
     if path == "/api/drafts":
       try: saved:list[storage.SavedDraft] = storage.list_drafts(self.champion_ids, self.drafts_directory)
       except OSError as error:
@@ -135,8 +143,22 @@ class Handler(BaseHTTPRequestHandler):
       self.send_json(500, {"error": "Draft evaluation failed. Check the server output."}); return
     self.send_json(200, {"blue_win_probability": p})
 
+  def update_favorite(self:Handler, favorite:bool)->None:
+    match:re.Match[str]|None = FAVORITE.fullmatch(urlsplit(self.path).path)
+    if not match or int(match[1]) not in self.champion_ids:
+      self.send_json(404, {"error": "Champion not found"}); return
+    try: favorites:list[int] = storage.set_favorite(int(match[1]), favorite, self.champion_ids, self.favorites_path)
+    except (OSError, ValueError) as error:
+      logging.warning("Could not save favorite champions: %s", error)
+      self.send_json(500, {"error": "Could not save favorite champions to disk. Try again."}); return
+    self.send_json(200, {"favorites": favorites})
+
+  def do_PUT(self:Handler)->None: self.update_favorite(True)
+
   def do_DELETE(self:Handler)->None:
-    match:re.Match[str]|None = SAVED_DRAFT.fullmatch(urlsplit(self.path).path)
+    path:str = urlsplit(self.path).path
+    if FAVORITE.fullmatch(path): self.update_favorite(False); return
+    match:re.Match[str]|None = SAVED_DRAFT.fullmatch(path)
     if not match: self.send_json(404, {"error": "Not found"}); return
     try: storage.delete_draft(match[1], self.drafts_directory)
     except FileNotFoundError: self.send_json(404, {"error": "Saved draft not found."}); return

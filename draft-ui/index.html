@@ -68,6 +68,7 @@
             <button type="button" data-view="compact" aria-label="Compact champion view" title="Compact view" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M1 1h5v5H1zm6 0h5v5H7zm6 0h5v5h-5zM1 7h5v5H1zm6 0h5v5H7zm6 0h5v5h-5zM1 13h5v5H1zm6 0h5v5H7zm6 0h5v5h-5z"/></svg></button>
           </div>
         </div>
+        <p id="favorites-status" role="status" aria-live="polite" hidden></p>
       </div>
       <div class="roster-scroll"><div class="champions" id="champions" aria-label="Champion choices"></div><p id="empty-search" hidden>No champions match your search.</p></div>
     </section>
@@ -89,8 +90,11 @@
       <svg class="ban-symbol" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.75"/><path d="m4.4 4.4 15.2 15.2"/></svg>
     </span><span class="ban-label"></span></button>
   </template>
+  <div id="champion-menu" class="context-menu" role="menu" aria-label="Champion actions" hidden>
+    <button id="toggle-favorite" type="button" role="menuitem">Favorite</button>
+  </div>
   <template id="champion-template">
-    <button class="champion" type="button"><span class="champion-art"><span class="portrait-placeholder" aria-hidden="true"></span><img alt="" loading="lazy" decoding="async" hidden></span><span class="champion-caption"></span></button>
+    <button class="champion" type="button"><span class="champion-art"><span class="portrait-placeholder" aria-hidden="true"></span><img alt="" loading="lazy" decoding="async" hidden><span class="favorite-star" aria-hidden="true" hidden>★</span></span><span class="champion-caption"></span></button>
   </template>
 </body>
 </html>

@@ -11,6 +11,7 @@ import storage
 class StorageTests(unittest.TestCase):
   def setUp(self:StorageTests)->None:
     self.temporary = TemporaryDirectory(); self.directory = Path(self.temporary.name) / "drafts"
+    self.favorites_path = Path(self.temporary.name) / "favorites.json"
     self.ids:frozenset[int] = frozenset({1, 2, 157})
     self.draft:Draft = {
       "blue": {"picks": [None] * 5, "bans": [None] * 5},
@@ -82,3 +83,41 @@ class StorageTests(unittest.TestCase):
         lambda index: storage.save_draft(f"Draft {index}", self.draft, self.directory), range(8)))
     self.assertEqual({draft["id"] for draft in storage.list_drafts(self.ids, self.directory)}, {draft["id"] for draft in saved})
     self.assertEqual(len(list(self.directory.iterdir())), 8)
+
+  def test_favorites_persist_independently_and_updates_are_idempotent(self:StorageTests)->None:
+    self.assertEqual(storage.load_favorites(self.ids, self.favorites_path), [])
+    self.assertFalse(self.favorites_path.exists())
+    for champion_id in (157, 1, 157): storage.set_favorite(champion_id, True, self.ids, self.favorites_path)
+    self.assertEqual(json.loads(self.favorites_path.read_bytes()), [1, 157])
+    self.assertEqual(storage.load_favorites(self.ids, self.favorites_path), [1, 157])
+    for _ in range(2): self.assertEqual(storage.set_favorite(1, False, self.ids, self.favorites_path), [157])
+    self.assertEqual(storage.set_favorite(157, False, self.ids, self.favorites_path), [])
+    self.assertFalse(self.directory.exists())
+
+  def test_concurrent_favorites_preserve_other_champions(self:StorageTests)->None:
+    ids:frozenset[int] = frozenset(range(1, 25))
+    with ThreadPoolExecutor(max_workers=8) as workers:
+      list(workers.map(lambda champion_id: storage.set_favorite(champion_id, True, ids, self.favorites_path), ids))
+      self.assertEqual(storage.load_favorites(ids, self.favorites_path), sorted(ids))
+      list(workers.map(lambda champion_id: storage.set_favorite(champion_id, False, ids, self.favorites_path), range(1, 13)))
+    self.assertEqual(storage.load_favorites(ids, self.favorites_path), list(range(13, 25)))
+
+  def test_invalid_favorites_are_rejected_without_overwriting_the_file(self:StorageTests)->None:
+    for value in (None, {}, [True], [1.0], ["1"], [999], [1, 1]):
+      self.favorites_path.write_text(json.dumps(value))
+      original:bytes = self.favorites_path.read_bytes()
+      with self.subTest(value=value), self.assertRaises(ValueError): storage.load_favorites(self.ids, self.favorites_path)
+      with self.subTest(value=value), self.assertRaises(ValueError): storage.set_favorite(2, True, self.ids, self.favorites_path)
+      self.assertEqual(self.favorites_path.read_bytes(), original)
+    self.favorites_path.unlink()
+    for champion_id, favorite in ((True, True), (999, True), (1, 1)):
+      with self.subTest(champion_id=champion_id, favorite=favorite), self.assertRaises(ValueError):
+        storage.set_favorite(champion_id, favorite, self.ids, self.favorites_path)
+    self.assertFalse(self.favorites_path.exists())
+
+  def test_failed_favorite_writes_preserve_the_previous_file(self:StorageTests)->None:
+    storage.set_favorite(1, True, self.ids, self.favorites_path)
+    with patch.object(Path, "replace", side_effect=OSError("disk full")), self.assertRaises(OSError):
+      storage.set_favorite(2, True, self.ids, self.favorites_path)
+    self.assertEqual(storage.load_favorites(self.ids, self.favorites_path), [1])
+    self.assertEqual(list(self.favorites_path.parent.iterdir()), [self.favorites_path])

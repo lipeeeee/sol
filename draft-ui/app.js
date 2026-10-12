@@ -7,6 +7,8 @@ const state = {draft: emptyDraft(), selected: null, selectedChampion: null, sear
   revision: 0, pending: false, probability: null, error: null};
 let bootstrap = null;
 const storage = {drafts: [], pending: false, error: null, message: ""};
+const favorites = {ids: new Set(), pending: false, error: null};
+let menuChampion = null;
 /** @type {Map<number, Champion>} */
 const champions = new Map();
 const championButtons = new Map(), pickElements = new Map(), banElements = new Map(), failedPortraits = new Set();
@@ -16,7 +18,8 @@ const dom = Object.fromEntries(["sol-version", "clear-draft", "pool-heading", "s
   "probability-bar", "blue-bar", "save-draft-form", "draft-name", "save-draft", "saved-drafts",
   "load-draft", "delete-draft", "storage-status", "export-draft", "import-draft", "draft-file",
   "draft-dialog", "draft-dialog-title", "close-draft-dialog",
-  "export-panel", "import-panel", "download-draft", "choose-draft-file"
+  "export-panel", "import-panel", "download-draft", "choose-draft-file",
+  "champion-menu", "toggle-favorite", "favorites-status"
 ].map(id => [id, document.getElementById(id)]));
 if (Object.values(dom).some(element => !element)) throw new Error("The draft page is missing required controls");
 
@@ -89,6 +92,7 @@ function createChampions() {
   for (const champion of champions.values()) {
     const button = document.getElementById("champion-template").content.firstElementChild.cloneNode(true);
     button.dataset.id = champion.id; button.querySelector(".champion-caption").textContent = champion.name;
+    button.setAttribute("aria-haspopup", "menu");
     setPortrait(button.querySelector(".champion-art"), champion, champion.name.slice(0, 2).toUpperCase());
     fragment.append(button); championButtons.set(champion.id, button);
   }
@@ -126,12 +130,68 @@ function renderRoster() {
     const current = holder && key(holder) === key(state.selected);
     const selected = champion.id === state.selectedChampion || Boolean(current);
     button.disabled = Boolean(holder && !current); button.classList.toggle("chosen", selected);
-    button.setAttribute("aria-label", holder ? `${champion.name}, assigned to ${label(holder)}` : champion.name);
+    const favorite = favorites.ids.has(champion.id);
+    button.querySelector(".favorite-star").hidden = !favorite;
+    const description = holder ? `${champion.name}, assigned to ${label(holder)}` : champion.name;
+    button.setAttribute("aria-label", `${description}${favorite ? ", favorite" : ""}`);
     button.setAttribute("aria-pressed", selected); button.title = button.getAttribute("aria-label");
     if (!button.hidden) visible++;
   }
   dom["pool-heading"].textContent = `Champion pool(${visible})`;
   dom["empty-search"].hidden = visible !== 0;
+}
+
+function renderFavorites() {
+  dom["favorites-status"].textContent = favorites.error ?? "";
+  dom["favorites-status"].hidden = !favorites.error;
+  dom["toggle-favorite"].textContent = favorites.ids.has(menuChampion) ? "Unfavorite" : "Favorite";
+  dom["toggle-favorite"].disabled = favorites.pending;
+}
+
+async function requestFavorites(url = "/api/favorites", options) {
+  if (favorites.pending) return;
+  favorites.pending = true; favorites.error = null; renderFavorites();
+  try {
+    const response = await fetch(url, options), result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not access favorite champions.");
+    favorites.ids = new Set(result.favorites); renderRoster();
+  } catch (error) { favorites.error = error.message || String(error); }
+  finally { favorites.pending = false; renderFavorites(); }
+}
+
+function closeChampionMenu(restoreFocus = false) {
+  if (dom["champion-menu"].hidden) return;
+  const button = championButtons.get(menuChampion);
+  dom["champion-menu"].hidden = true; menuChampion = null;
+  if (restoreFocus) (button && !button.disabled ? button : dom.search).focus({preventScroll: true});
+}
+
+function showChampionMenu(button, event) {
+  menuChampion = Number(button.dataset.id); renderFavorites();
+  const menu = dom["champion-menu"], rect = button.getBoundingClientRect();
+  const x = event.clientX || event.clientY ? event.clientX : rect.left;
+  const y = event.clientX || event.clientY ? event.clientY : rect.bottom;
+  menu.setAttribute("aria-label", `${champions.get(menuChampion).name} actions`);
+  menu.hidden = false;
+  menu.style.left = `${Math.max(8, Math.min(x, document.documentElement.clientWidth - menu.offsetWidth - 8))}px`;
+  menu.style.top = `${Math.max(8, Math.min(y, document.documentElement.clientHeight - menu.offsetHeight - 8))}px`;
+  dom["toggle-favorite"].focus({preventScroll: true});
+}
+
+function redirectSearch(event) {
+  return !event.defaultPrevented && !dom["draft-dialog"].open && event.target !== dom.search &&
+    !event.target.isContentEditable && !event.target.closest?.("input, textarea, select, [contenteditable]:not([contenteditable='false']), [role='textbox']");
+}
+
+function typeInSearch(text, backspace = false) {
+  closeChampionMenu();
+  dom.search.focus({preventScroll: true});
+  let start = dom.search.selectionStart ?? dom.search.value.length;
+  const end = dom.search.selectionEnd ?? start;
+  if (backspace && start === end && start > 0) start -= [...dom.search.value.slice(0, start)].at(-1).length;
+  // Moving focus during keydown does not reliably send the first character to the input.
+  dom.search.setRangeText(text, start, end, "end");
+  dom.search.dispatchEvent(new Event("input", {bubbles: true}));
 }
 
 function renderEvaluation() {
@@ -181,6 +241,7 @@ function renderStorage() {
 
 function showDraftDialog(mode) {
   if (dom["draft-dialog"].open) return;
+  closeChampionMenu();
   const importing = mode === "import";
   dom["draft-dialog-title"].textContent = importing ? "Import Draft" : "Save Draft";
   dom["export-panel"].hidden = importing;
@@ -266,12 +327,43 @@ document.querySelector(".workspace").addEventListener("click", event => {
   renderTeams(); renderRoster();
 });
 document.querySelector(".workspace").addEventListener("contextmenu", event => {
-  const button = event.target.closest("button[data-kind], button[data-id]");
+  const button = event.target.closest("button[data-kind]");
   if (!button) return;
-  const slot = button.dataset.kind ? eventSlot(button) : occupiedSlots(state.draft).get(Number(button.dataset.id));
+  const slot = eventSlot(button);
   if (!slot || slotChampion(state.draft, slot) === null) return;
   event.preventDefault();
   if (clearSlot(state.draft, slot)) draftChanged();
+});
+dom.champions.addEventListener("contextmenu", event => {
+  const button = event.target.closest("button[data-id]");
+  if (!button) return;
+  event.preventDefault(); showChampionMenu(button, event);
+});
+dom["toggle-favorite"].addEventListener("click", () => {
+  if (menuChampion === null || favorites.pending) return;
+  const id = menuChampion, method = favorites.ids.has(id) ? "DELETE" : "PUT";
+  closeChampionMenu(true); requestFavorites(`/api/favorites/${id}`, {method});
+});
+document.addEventListener("pointerdown", event => {
+  if (!event.target.closest("#champion-menu")) closeChampionMenu();
+});
+document.addEventListener("scroll", () => closeChampionMenu(), true);
+window.addEventListener("resize", () => closeChampionMenu());
+window.addEventListener("blur", () => closeChampionMenu());
+document.addEventListener("keydown", event => {
+  if (!dom["champion-menu"].hidden && event.key === "Escape") {
+    event.preventDefault(); closeChampionMenu(true); return;
+  }
+  if (event.key === "Tab") closeChampionMenu(true);
+  if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing || !redirectSearch(event)) return;
+  if ((event.key.length !== 1 || event.key === " ") && event.key !== "Backspace") return;
+  event.preventDefault(); typeInSearch(event.key === "Backspace" ? "" : event.key, event.key === "Backspace");
+});
+document.addEventListener("paste", event => {
+  if (!redirectSearch(event)) return;
+  const text = event.clipboardData?.getData("text/plain");
+  if (!text) return;
+  event.preventDefault(); typeInSearch(text);
 });
 document.querySelector(".workspace").addEventListener("keydown", event => {
   if (event.key !== "Delete") return;
@@ -401,6 +493,7 @@ async function start() {
     bootstrap = await response.json();
     for (const champion of bootstrap.champions) champions.set(champion.id, champion);
     createChampions(); renderRoster(); renderEvaluation();
+    requestFavorites();
     const hasRoles = bootstrap.champions.some(champion => champion.roles.length > 0);
     for (const button of document.querySelectorAll(".filters button[data-role]")) {
       button.disabled = !hasRoles;
