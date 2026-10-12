@@ -1,4 +1,4 @@
-"""Basic MLP on competitive data probably"""
+"""Additive champion-role strengths on competitive data."""
 from sol.utils import *
 from metadata.champion_ids import CHAMPION_IDS 
 from sol.dataset import SolDataset, split_games
@@ -12,27 +12,25 @@ training_params = {
   "device": "cuda"
 }
 _device = training_params["device"]
-inputs = ["champion", "firstPick"]
+inputs = ["champion"]
 
 class Sol_1(nn.Module):
-  def __init__(self):
+  # y = b + strength_blue - strength_red
+  def __init__(self, side_aware:bool=False):
     super().__init__()
-    self.define()
+    self.define(10 if side_aware else 5)
 
-  def define(self) -> Self:
-    self.activation = nn.GELU()
-    self.dropout = nn.Dropout(0.2)
-    self.champ_emb = nn.Embedding(max(CHAMPION_IDS.values()) + 1, 32)
-
-    self.ln1 = nn.Linear(32 * 10 + 1, 4)
-    self.out = nn.Linear(4, 1)
+  def define(self, embedding_dim:int) -> Self:
+    self.strength_emb = nn.Embedding(max(CHAMPION_IDS.values()) + 1, embedding_dim)
+    nn.init.zeros_(self.strength_emb.weight)
+    self.bias = nn.Parameter(torch.zeros(1))
     return self
 
-  def forward(self, champ:Tensor, firstPick:Tensor):
-    champ = self.champ_emb(champ).flatten(1)
-    x = torch.concat((champ, firstPick), dim=1)
-    x = self.dropout(self.activation(self.ln1(x)))
-    return (self.out(x)).squeeze(-1)
+  def forward(self, champ:Tensor) -> Tensor:
+    positions = torch.arange(10, device=_device)
+    roles = positions % self.strength_emb.embedding_dim
+    strengths = self.strength_emb(champ)[:, positions, roles]
+    return self.bias + strengths[:, :5].sum(dim=1) - strengths[:, 5:].sum(dim=1)
 model = Sol_1().to(_device)
 if DEBUG >= 1: print(model, count_params(model))
 
@@ -50,12 +48,11 @@ if TRAINING:
   for indices in split_games(sd.data):
     datasets.append({
       "champion": torch.tensor([[CHAMPION_IDS[name] for name in sd.data["champion"][g]] for g in indices], dtype=torch.long, device=_device),
-      "firstPick": torch.tensor([[float(sd.data["firstPick"][g][0])] for g in indices], dtype=dtype, device=_device),
       "result": torch.tensor([float(sd.data["team_result"][g][0]) for g in indices], dtype=dtype, device=_device)
     })
+  assert all(input in sd.data for input in inputs)
   del sd
 
   if DEBUG >= 2:
     for name, dataset in zip(("train", "valid", "test"), datasets):
       print(f"dataset {name}", {field: tuple(tensor.shape) for field, tensor in dataset.items()})
-
