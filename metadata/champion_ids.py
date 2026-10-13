@@ -1,3 +1,4 @@
+# WARNING: need to assert CHAMPION_IDS on each iteration cuz updating this causes old checkpoints to break
 CHAMPION_IDS:dict[str, int] = {
   "Aatrox": 1,
   "Ahri": 2,

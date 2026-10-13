@@ -1,7 +1,6 @@
 # iteration agnostic, lazy loaded dataset. (design is kinda pretty)
-from typing import Self
-
 from sol.utils import *
+from typing import Self
 from pathlib import Path
 from itertools import islice
 from collections import defaultdict

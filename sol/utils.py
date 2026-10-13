@@ -1,7 +1,14 @@
 from __future__ import annotations
 from collections import defaultdict
-from typing import Any, ClassVar, Generic, TypeVar
-import os
+from typing import Any, ClassVar, Generic, TypeVar, Callable
+import os, sys
+
+try:
+  import torch
+  from torch import nn
+except ImportError:
+  print("sol needs torch compiled to run")
+  sys.exit(-1)
 
 T = TypeVar("T")
 
@@ -27,12 +34,20 @@ TRAINING = ContextVar("TRAINING", 0)
 SAFE_DATA_PARSING = ContextVar("SAFE_DATA_PARSING", 1)
 
 # **** regular checks for sol ****
-try:
-  import torch; assert torch.cuda.is_available()
-except AssertionError:
-  if DEBUG >= 1: print("cuda isn't available!")
+if DEBUG >= 1: # give info on cuda
+  try:
+    assert torch.cuda.is_available()
+  except AssertionError:
+    print("cuda isn't available!")
+
+def assert_model_integrity(sol):
+  assert sol.dtype
+  assert isinstance(sol.model, nn.Module); assert isinstance(sol.training_params, dict)
+  assert isinstance(sol.calculate_loss, Callable)
+  assert isinstance(sol.inputs, list); assert len(sol.inputs) >= 1
+  if TRAINING: assert len(sol.datasets) == 3, "expected train, validation, and test datasets"
 
 # **** random utils ****
 # (all_params, trainable_params)
-def count_params(model): return (sum(p.numel() for p in model.parameters()), sum(p.numel() for p in model.parameters() if p.requires_grad))
+def count_params(model:nn.Module): return (sum(p.numel() for p in model.parameters()), sum(p.numel() for p in model.parameters() if p.requires_grad))
 def mk_defaultdict(): return defaultdict(dict) # hack: allows pickle to encode defaultdict lambdas

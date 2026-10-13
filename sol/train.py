@@ -5,8 +5,7 @@ from torch.utils.data import DataLoader, StackDataset
 from functools import partial
 from math import isfinite
 from pathlib import Path
-from typing import Callable
-from torch import nn, optim
+from torch import optim
 
 name = sys.argv[1] if len(sys.argv) > 1 else "sol_1"
 try:
@@ -16,12 +15,7 @@ except ModuleNotFoundError:
   sys.exit(-1)
 
 # **** check model integrity ****
-assert sol.dtype
-assert isinstance(sol.model, nn.Module); assert isinstance(sol.training_params, dict)
-assert isinstance(sol.calculate_loss, Callable)
-assert isinstance(sol.inputs, list); assert len(sol.inputs) >= 1
-assert len(sol.datasets) == 3, "expected train, validation, and test datasets"
-
+assert_model_integrity(sol)
 
 # **** defining environment ****
 training_config = {
