@@ -13,7 +13,7 @@ class SolDataset():
   def __init__(self):
     self._data:SolData = defaultdict(mk_defaultdict) # mk_defaultdict is a hack to allow pickle encoding
 
-  REQUIRED_FIELDS:set[str] = {"gameid", "result", "date", "patch", "champion", "position", "firstPick", "pick_order" }
+  REQUIRED_FIELDS:set[str] = {"gameid", "result", "date", "patch", "champion", "position", "firstPick", "pick_order", "ban_order" }
   def extract_base_data(self, data_folder:str|Path="./data", requested_fields:list[str]|None=None): # everything in csv's
     data_folder = data_folder if isinstance(data_folder, Path) else Path(data_folder)
     found_csv:list[Path] = sorted(data_folder.glob("*.csv"))
@@ -58,7 +58,7 @@ class SolDataset():
           for side, row in enumerate(batch[10:]):
             self._data["firstPick"][game_id][side] = row["firstPick"] if row["firstPick"] != "" else ("1", "0")[side]
             self._data["pick_order"][game_id][side] = [row[f"pick{i}"] for i in range(1, 6)]
-            if "ban_order" in fields_to_parse: self._data["ban_order"][game_id][side] = [row[f"ban{i}"] for i in range(1, 6)]
+            self._data["ban_order"][game_id][side] = [row[f"ban{i}"] for i in range(1, 6)]
             for field in team_fields:
               if field in fields_to_parse: self._data[f"team_{field}"][game_id][side] = row[field]
           if SAFE_DATA_PARSING: assert tuple(row["firstPick"] for row in batch[10:]) in (("1", "0"), ("0", "1"), ("", ""))
