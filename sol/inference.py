@@ -2,16 +2,18 @@ from sol.utils import *
 from metadata.champion_ids import CHAMPION_IDS
 from torch import Tensor
 from types import ModuleType
+from weakref import WeakValueDictionary
 import sys, importlib
 
 # needs to handle these inputs: draft state(champ, ban, firstpick) + patch
 # dependening sol_iteration it should call the datasets to fill other computed fields
 
-_version_cache = None # TODO: Should be a cachable collection of sol versions
+_version_cache:WeakValueDictionary[str, ModuleType] = WeakValueDictionary()
 
 def champ_id(x:str|int) -> int: return CHAMPION_IDS[x] if isinstance(x, str) else x
 def load_model(version:str|int) -> ModuleType:
   name = version if isinstance(version, str) else f"sol_{version}"
+  if (sol:=_version_cache.get(name)) is not None: return sol
   try: sol = importlib.import_module(f"configs.{name}")
   except ModuleNotFoundError as e:
     if e.name != f"configs.{name}": raise
@@ -24,6 +26,7 @@ def load_model(version:str|int) -> ModuleType:
   weights = torch.load(checkpoint_path, map_location=sol.training_params["device"], weights_only=True)
   sol.model.load_state_dict(weights["model_state_dict"])
   if DEBUG >= 1: print(f"inference: loaded model weights for {name}({checkpoint_path})")
+  _version_cache[name] = sol
   return sol
 def prepare_tensors(inputs:list[dict], device) -> dict[str, Tensor]: # for prediction
   # **** check integrity of inputs ****
