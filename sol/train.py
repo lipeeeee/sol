@@ -8,6 +8,7 @@ from pathlib import Path
 from torch import optim
 
 name = sys.argv[1] if len(sys.argv) > 1 else "sol_1"
+if name.isdigit(): name = f"sol_{name}"
 try:
   sol = importlib.import_module(f"configs.{name}")
 except ModuleNotFoundError:

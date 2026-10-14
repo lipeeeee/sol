@@ -3,7 +3,6 @@ from sol.utils import *
 from metadata.champion_ids import CHAMPION_IDS 
 from sol.dataset import SolDataset, split_games
 from functools import partial
-from typing import Self
 from torch import Tensor, nn, optim
 
 dtype = torch.float32
@@ -18,9 +17,7 @@ class Sol_1(nn.Module):
   # y = b + strength_blue - strength_red
   def __init__(self, side_aware:bool=False):
     super().__init__()
-    self.define(10 if side_aware else 5)
-
-  def define(self, embedding_dim:int) -> Self:
+    embedding_dim = 10 if side_aware else 5
     self.strength_emb = nn.Embedding(max(CHAMPION_IDS.values()) + 1, embedding_dim)
     nn.init.zeros_(self.strength_emb.weight)
     self.bias = nn.Parameter(torch.zeros(1))

@@ -27,7 +27,7 @@ def load_model(version:str|int) -> ModuleType:
   return sol
 def prepare_tensors(inputs:list[dict], device) -> dict[str, Tensor]: # for prediction
   # **** check integrity of inputs ****
-  if DEBUG >= 4: pass # we should probably check for input integrity but it might be expensive
+  if DEBUG >= 4: pass # TODO: we should probably check for input integrity but it might be expensive
 
   # **** build tensors ****
   tensors:dict[str, Tensor] = dict()
