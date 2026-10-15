@@ -2,6 +2,7 @@ from sol.utils import *
 from metadata.champion_ids import CHAMPION_IDS
 from torch import Tensor
 from types import ModuleType
+from pathlib import Path
 from weakref import WeakValueDictionary
 import sys, importlib
 
@@ -22,7 +23,8 @@ def load_model(version:str|int) -> ModuleType:
   if DEBUG >= 1: print(f"inference: loaded {name}")
   sol.model.to(sol.training_params["device"])
   sol.model.eval()
-  checkpoint_path = sol.training_params.get("checkpoint_path", f"checkpoints/{name}.pt")
+  checkpoint_path = Path(sol.training_params.get("checkpoint_path", f"checkpoints/{name}.pt"))
+  if not checkpoint_path.is_absolute(): checkpoint_path = Path(__file__).resolve().parent.parent / checkpoint_path
   weights = torch.load(checkpoint_path, map_location=sol.training_params["device"], weights_only=True)
   sol.model.load_state_dict(weights["model_state_dict"])
   if DEBUG >= 1: print(f"inference: loaded model weights for {name}({checkpoint_path})")

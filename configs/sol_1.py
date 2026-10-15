@@ -8,7 +8,7 @@ from torch import Tensor, nn, optim
 dtype = torch.float32
 training_params = {
   "optimizer": partial(optim.Adam, lr=1e-3, weight_decay=0.0),
-  "device": "cuda"
+  "device": "cuda" if torch.cuda.is_available() else "cpu"
 }
 _device = training_params["device"]
 inputs = ["champion"]
@@ -21,10 +21,9 @@ class Sol_1(nn.Module):
     self.strength_emb = nn.Embedding(max(CHAMPION_IDS.values()) + 1, embedding_dim)
     nn.init.zeros_(self.strength_emb.weight)
     self.bias = nn.Parameter(torch.zeros(1))
-    return self
 
   def forward(self, champ:Tensor) -> Tensor:
-    positions = torch.arange(10, device=_device)
+    positions = torch.arange(10, device=champ.device)
     roles = positions % self.strength_emb.embedding_dim
     strengths = self.strength_emb(champ)[:, positions, roles]
     return self.bias + strengths[:, :5].sum(dim=1) - strengths[:, 5:].sum(dim=1)

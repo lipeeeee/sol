@@ -3,6 +3,8 @@ data/*
 build/*
 checkpoints/*
 experiments/*
+draft-ui/drafts/
+draft-ui/favorites.json
 
 .sol_env
 
