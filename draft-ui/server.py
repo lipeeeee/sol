@@ -69,7 +69,7 @@ class Handler(BaseHTTPRequestHandler):
         splash:str|None = f"/splashes/{assets.ASSET_VERSION}/{champion['id']}.jpg"
         if assets.normalise_name(champion["name"]) not in self.artwork: portrait = splash = None
         champions.append({**champion, "portrait_url": portrait, "splash_url": splash})
-      self.send_json(200, {"sol_version": self.version, "champions": champions,
+      self.send_json(200, {"sol_version": self.version, "champions": champions, "patch": assets.ASSET_VERSION.rsplit(".", 1)[0],
                           "evaluation_available": self.evaluator is not None})
       return
     if path == "/api/favorites":

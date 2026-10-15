@@ -14,6 +14,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .topbar-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; align-items: center; }
 .topbar-actions button { padding: 8px 13px; font-size: 12px; font-weight: 650; }
 .topbar-actions button:disabled { color: #555; border-color: #222; background: #080808; }
+.draft-setting { display: flex; align-items: center; gap: 6px; color: #999; font-size: 11px; }
+.draft-setting input, .draft-setting select { height: 33px; padding: 5px 7px; color: #eee; border: 1px solid #303030; background: #111; font-size: 12px; }
+.draft-setting input { width: 80px; }
 .local-badge { display: flex; align-items: center; gap: 7px; margin-right: 10px; color: #999; font-size: 9px; font-weight: 700; letter-spacing: 1px; }
 .local-badge > span { width: 5px; height: 5px; background: var(--yellow); }
 .local-badge b { font-size: 11px; font-weight: 600; color: #ddd; letter-spacing: 0; border-left: 1px solid #333; padding-left: 9px; }

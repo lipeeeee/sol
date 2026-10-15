@@ -41,7 +41,7 @@ def prepare_tensors(inputs:list[dict], device) -> dict[str, Tensor]: # for predi
     for draft in inputs], dtype=torch.long, device=device)
   return tensors
 def predict(sol:ModuleType, x:list[dict]) -> Tensor: # for now only assume json/dict is viable for prediction
-  # x= [{"champion": {"blue": [], "red": []}, "firstPick": int, "patch": str}, ...]
+  # x= [{"champion": {"blue": [], "red": []}, "ban": {"blue": [], "red": []}, "firstPick": int, "patch": str|None}, ...]
   tensors = prepare_tensors(x, device=sol.training_params["device"])
   with torch.inference_mode():
     y = sol.model(*(tensors[key] for key in sol.inputs))

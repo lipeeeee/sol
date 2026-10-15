@@ -12,7 +12,7 @@ test("empty drafts own independent slot arrays and sessions", () => {
   const draft = emptyDraft(); draft.blue.picks[0] = 1; draft.blue.bans[0] = 2;
   assert.equal(draft.blue.picks[1], null); assert.equal(draft.red.picks[0], null);
   assert.equal(draft.red.bans[0], null); assert.equal(emptyDraft().blue.picks[0], null);
-  for (const team of Object.values(draft)) for (const slots of Object.values(team)) assert.equal(slots.length, 5);
+  for (const team of [draft.blue, draft.red]) for (const slots of Object.values(team)) assert.equal(slots.length, 5);
 });
 
 test("any late pick or ban can be assigned without preceding slots", () => {
@@ -87,7 +87,7 @@ test("filled slots exchange champions across picks, bans and sides without dupli
     assert.equal(swapSlots(draft, source, target), true);
     assert.equal(slotChampion(draft, source), 2); assert.equal(slotChampion(draft, target), 1);
     assert.equal(occupiedSlots(draft).size, 2);
-    for (const team of Object.values(draft)) for (const slots of Object.values(team)) assert.equal(slots.length, 5);
+    for (const team of [draft.blue, draft.red]) for (const slots of Object.values(team)) assert.equal(slots.length, 5);
   }
 });
 

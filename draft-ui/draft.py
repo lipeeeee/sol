@@ -1,10 +1,16 @@
-from typing import TypedDict, cast
+from typing import NotRequired, TypedDict, cast
 
 Team = TypedDict("Team", {"picks": list[int|None], "bans": list[int|None]})
-Draft = TypedDict("Draft", {"blue": Team, "red": Team})
+Draft = TypedDict("Draft", {"blue": Team, "red": Team, "firstPick": NotRequired[int], "patch": NotRequired[str|None]})
 
 def validate_draft(value:object, champion_ids:frozenset[int])->Draft:
-  if not isinstance(value, dict) or set(value) != {"blue", "red"}: raise ValueError("Expected blue and red teams")
+  if not isinstance(value, dict) or not {"blue", "red"} <= set(value) <= {"blue", "red", "firstPick", "patch"}:
+    raise ValueError("Expected blue and red teams with optional firstPick and patch")
+  if type(first_pick:=value.get("firstPick", 1)) is not int or first_pick not in (0, 1):
+    raise ValueError("firstPick must be 1 for Blue or 0 for Red")
+  patch = value.get("patch")
+  if patch is not None and (not isinstance(patch, str) or not patch.strip() or len(patch) > 16):
+    raise ValueError("Patch must be a nonempty string of up to 16 characters or null")
   used:set[int] = set()
   for side in ("blue", "red"):
     team:object = value[side]

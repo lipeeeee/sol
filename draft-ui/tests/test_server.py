@@ -29,6 +29,7 @@ class BootstrapData(TypedDict):
   sol_version:int
   champions:list[BootstrapChampion]
   evaluation_available:bool
+  patch:str
 
 class ServerTests(unittest.TestCase):
   def setUp(self:ServerTests)->None:
@@ -71,6 +72,7 @@ class ServerTests(unittest.TestCase):
     self.assertEqual(json.loads(self.request("GET", "/api/drafts")[1]), {"drafts": []})
     self.assertFalse(self.directory.exists())
     self.draft["blue"]["picks"][3] = 1; self.draft["red"]["bans"][4] = 157
+    self.draft["firstPick"], self.draft["patch"] = 0, "16.18"
     status, body, _ = self.save({"name": "  Match one  ", "draft": self.draft})
     saved:dict[str, object] = json.loads(body); path:str = f"/api/drafts/{saved['id']}"
     self.assertEqual(status, 201); self.assertEqual(saved["name"], "Match one"); self.assertEqual(saved["draft"], self.draft)
@@ -158,6 +160,7 @@ class ServerTests(unittest.TestCase):
     status, body, headers = self.request("GET", "/api/bootstrap")
     data:BootstrapData = json.loads(body)
     self.assertEqual(status, 200); self.assertFalse(data["evaluation_available"])
+    self.assertEqual(data["patch"], assets.ASSET_VERSION.rsplit(".", 1)[0])
     wukong:BootstrapChampion = next(champion for champion in data["champions"] if champion["name"] == "Wukong")
     self.assertEqual(wukong["id"], 157); self.assertEqual(wukong["portrait_url"], f"/portraits/{assets.ASSET_VERSION}/157.png")
     self.assertEqual(wukong["splash_url"], f"/splashes/{assets.ASSET_VERSION}/157.jpg")
@@ -189,6 +192,7 @@ class ServerTests(unittest.TestCase):
 
   def test_evaluator_receives_exact_completed_snapshot_and_version(self:ServerTests)->None:
     self.fill_picks()
+    self.draft["firstPick"], self.draft["patch"] = 0, "16.18"
     self.draft["red"]["bans"][4] = 157
     received:list[tuple[int, Draft]] = []
     def evaluate(version:int, draft:Draft)->float: received.append((version, draft)); return -.64

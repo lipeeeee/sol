@@ -13,7 +13,7 @@ let menuChampion = null;
 const champions = new Map();
 const championButtons = new Map(), pickElements = new Map(), banElements = new Map(), failedPortraits = new Set();
 const splashPreloads = new Map();
-const dom = Object.fromEntries(["sol-version", "clear-draft", "pool-heading", "search", "champions", "empty-search",
+const dom = Object.fromEntries(["sol-version", "patch", "first-pick", "clear-draft", "pool-heading", "search", "champions", "empty-search",
   "evaluation-status", "evaluation-result", "evaluation-score", "evaluation-bar", "blue-bar",
   "save-draft-form", "draft-name", "save-draft", "saved-drafts",
   "load-draft", "delete-draft", "storage-status", "export-draft", "import-draft", "draft-file",
@@ -100,6 +100,8 @@ function createChampions() {
 }
 
 function renderTeams() {
+  dom.patch.value = state.draft.patch ?? ""; dom["first-pick"].value = String(state.draft.firstPick ?? 1);
+  dom.patch.disabled = dom["first-pick"].disabled = !bootstrap;
   for (const side of ["blue", "red"]) {
     for (let index = 0; index < 5; index++) {
       const slot = {side, kind: "picks", index}, id = state.draft[side].picks[index], card = pickElements.get(key(slot));
@@ -202,7 +204,8 @@ function renderEvaluation() {
   dom["evaluation-status"].textContent = state.error ?? (!bootstrap ? "Loading Sol…" : !available ?
     `No evaluator is connected to Sol ${bootstrap.sol_version} yet.` : !draftComplete() ?
     "Fill all five picks on each side to evaluate the draft." : state.pending ? "Evaluating this draft…" :
-    "Positive favors Blue · negative favors Red.");
+    "");
+  dom["evaluation-status"].hidden = !dom["evaluation-status"].textContent;
   dom["evaluation-result"].hidden = state.logit === null;
   if (state.logit !== null) {
     const score = Number((state.logit / Math.log(0.55 / 0.45)).toFixed(2));
@@ -426,7 +429,7 @@ function loadSelectedDraft() {
   storageAction(async () => {
     const saved = await storageRequest(`/api/drafts/${id}`);
     if (revision !== state.revision) throw new Error("The draft changed while loading. Load again to replace it.");
-    state.draft = saved.draft; draftChanged();
+    state.draft = {...emptyDraft(), ...saved.draft}; draftChanged();
     storage.message = `Loaded “${saved.name}”.`;
     dom["draft-dialog"].close();
   });
@@ -488,8 +491,19 @@ dom["draft-file"].addEventListener("change", () => {
     } finally { dom["draft-file"].value = ""; }
   });
 });
+dom.patch.addEventListener("change", () => {
+  const patch = dom.patch.value.trim() || null;
+  if (state.draft.patch === patch) return;
+  state.draft.patch = patch; draftChanged();
+});
+dom["first-pick"].addEventListener("change", () => {
+  const firstPick = Number(dom["first-pick"].value);
+  if (state.draft.firstPick === firstPick) return;
+  state.draft.firstPick = firstPick; draftChanged();
+});
 dom["clear-draft"].addEventListener("click", () => {
-  state.draft = emptyDraft(); dom["draft-name"].value = ""; draftChanged();
+  state.draft = {...emptyDraft(), patch: state.draft.patch, firstPick: state.draft.firstPick};
+  dom["draft-name"].value = ""; draftChanged();
 });
 async function start() {
   createSlots(); renderTeams();
@@ -497,8 +511,9 @@ async function start() {
     const response = await fetch("/api/bootstrap");
     if (!response.ok) throw new Error("Could not load the draft editor");
     bootstrap = await response.json();
+    state.draft.patch = bootstrap.patch ?? null;
     for (const champion of bootstrap.champions) champions.set(champion.id, champion);
-    createChampions(); renderRoster(); renderEvaluation();
+    createChampions(); renderTeams(); renderRoster(); renderEvaluation();
     requestFavorites();
     const hasRoles = bootstrap.champions.some(champion => champion.roles.length > 0);
     for (const button of document.querySelectorAll(".filters button[data-role]")) {

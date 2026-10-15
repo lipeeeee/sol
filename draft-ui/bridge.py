@@ -10,7 +10,9 @@ Evaluator = Callable[[int, Draft], float]
 
 def evaluator(version:int, draft:Draft)->float:
   from sol.inference import load_model, predict
-  inputs = {"champion": {side: draft[side]["picks"] for side in ("blue", "red")}}
+  inputs = {"champion": {side: draft[side]["picks"] for side in ("blue", "red")},
+            "ban": {side: draft[side]["bans"] for side in ("blue", "red")},
+            "firstPick": draft.get("firstPick", 1), "patch": draft.get("patch")}
   return predict(load_model(version), [inputs]).item()
 
 def validate_version(version:int)->None:

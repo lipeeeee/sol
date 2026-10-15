@@ -2,7 +2,7 @@
 /** @typedef {"picks"|"bans"} Kind */
 /** @typedef {{side: Side, kind: Kind, index: number}} Slot */
 /** @typedef {{picks: (number|null)[], bans: (number|null)[]}} Team */
-/** @typedef {{blue: Team, red: Team}} Draft */
+/** @typedef {{blue: Team, red: Team, firstPick: number, patch: string|null}} Draft */
 /** @typedef {{id: number, name: string, roles: string[], portrait_url?: string|null, splash_url?: string|null}} Champion */
 
 function assert(condition, message) { if (!condition) throw new Error(message); }
@@ -14,7 +14,7 @@ function assertSlot(slot) {
 /** @returns {Draft} */
 export function emptyDraft() {
   const team = () => ({picks: Array(5).fill(null), bans: Array(5).fill(null)});
-  return {blue: team(), red: team()};
+  return {blue: team(), red: team(), firstPick: 1, patch: null};
 }
 
 /** @param {Draft} draft @param {Slot} slot @returns {number|null} */

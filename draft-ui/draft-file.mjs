@@ -6,8 +6,19 @@ function fields(value, expected) {
 }
 
 function mapDraft(value, resolve) {
-  if (!fields(value, ["blue", "red"])) throw new Error("Expected blue and red teams.");
+  if (!value || typeof value !== "object" || Array.isArray(value) || !Object.hasOwn(value, "blue") || !Object.hasOwn(value, "red") ||
+    Object.keys(value).some(key => !["blue", "red", "firstPick", "patch"].includes(key))) {
+    throw new Error("Expected blue and red teams with optional firstPick and patch.");
+  }
   const result = emptyDraft(), used = new Set();
+  result.firstPick = Object.hasOwn(value, "firstPick") ? value.firstPick : 1;
+  result.patch = Object.hasOwn(value, "patch") ? value.patch : null;
+  if (!Number.isInteger(result.firstPick) || ![0, 1].includes(result.firstPick)) {
+    throw new Error("First pick must be 1 for Blue or 0 for Red.");
+  }
+  if (result.patch !== null && (typeof result.patch !== "string" || !result.patch.trim() || result.patch.length > 16)) {
+    throw new Error("Patch must be a nonempty string of up to 16 characters or null.");
+  }
   for (const side of ["blue", "red"]) {
     if (!fields(value[side], ["picks", "bans"])) throw new Error(`Expected picks and bans for ${side}.`);
     for (const kind of ["picks", "bans"]) {

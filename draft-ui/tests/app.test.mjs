@@ -10,7 +10,7 @@ const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const ids = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(([, id]) => id));
 const championNames = ["Aatrox", "Ahri", "Akali", "Akshan", "Alistar", "Ambessa", "Amumu", "Anivia", "Annie", "Aphelios", "Ashe", "Aurelion Sol"];
 const fullDraft = () => ({blue: {picks: [1, 2, 3, 4, 5], bans: Array(5).fill(null)},
-  red: {picks: [6, 7, 8, 9, 10], bans: Array(5).fill(null)}});
+  red: {picks: [6, 7, 8, 9, 10], bans: Array(5).fill(null)}, firstPick: 1, patch: null});
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function element(fragment = false) {
   const queries = new Map(), attributes = new Map();
@@ -51,8 +51,8 @@ async function setup(available = true, saved = [], listError = null, favoriteIds
   const get = id => {
     if (!elements.has(id)) {
       const created = element(); created.onFocus = () => { document.activeElement = created; };
-      if (["search", "draft-name", "saved-drafts"].includes(id)) created.closest = selector =>
-        selector.includes(id === "saved-drafts" ? "select" : "input") ? created : null;
+      if (["search", "draft-name", "saved-drafts", "patch", "first-pick"].includes(id)) created.closest = selector =>
+        selector.includes(["saved-drafts", "first-pick"].includes(id) ? "select" : "input") ? created : null;
       elements.set(id, created);
     }
     return elements.get(id);
@@ -65,7 +65,7 @@ async function setup(available = true, saved = [], listError = null, favoriteIds
       const created = element(); if (tag === "a") downloads.push(created); return created;
     }}, window = element();
   const fetch = (url, options) => {
-    if (url === "/api/bootstrap") return Promise.resolve({ok: true, json: async () => ({sol_version: 1,
+    if (url === "/api/bootstrap") return Promise.resolve({ok: true, json: async () => ({sol_version: 1, patch: null,
       evaluation_available: available, champions: championNames.map((name, i) => ({id: i + 1, name, roles: [],
         portrait_url: `/portraits/16.19.1/${i + 1}.png`, splash_url: `/splashes/16.19.1/${i + 1}.jpg`}))})});
     if (url === "/api/drafts" && !options) return Promise.resolve({ok: !listError,
@@ -104,6 +104,8 @@ async function setup(available = true, saved = [], listError = null, favoriteIds
   };
   return {get, document, requests, storageRequests, favoriteRequests, downloads, exportedBlobs, preloads, choose, clickSlot, respond,
     state: runInContext("state", context),
+    setPatch: value => { get("patch").value = value; emit("patch", "change", get("patch")); },
+    setFirstPick: value => { get("first-pick").value = String(value); emit("first-pick", "change", get("first-pick")); },
     fill: () => { for (const side of ["blue", "red"]) for (let index = 0; index < 5; index++) {
       choose((side === "blue" ? 1 : 6) + index, side, "picks", index);
     } },
@@ -187,6 +189,19 @@ test("an unavailable evaluator leaves draft editing working without evaluation r
   assert.equal(app.requests.length, 0); assert.equal(app.state.pending, false);
   assert.equal(app.state.draft.blue.picks[0], 1);
   assert.equal(app.get("evaluation-status").textContent, "No evaluator is connected to Sol 1 yet.");
+});
+
+test("evaluations carry bans, patch and first pick, and context edits refresh the score", async () => {
+  const app = await setup(); app.setPatch("16.18"); app.setFirstPick(0);
+  app.choose(11, "blue", "bans", 2); app.fill();
+  assert.equal(app.requests[0].draft.patch, "16.18"); assert.equal(app.requests[0].draft.firstPick, 0);
+  assert.deepEqual(app.requests[0].draft.blue.bans, [null, null, 11, null, null]);
+  await app.respond(0);
+  assert.equal(app.get("evaluation-status").textContent, "");
+  app.setPatch("16.19"); assert.equal(app.requests[1].draft.patch, "16.19");
+  app.setFirstPick(1); await app.respond(1);
+  assert.equal(app.requests[2].draft.firstPick, 1); await app.respond(2);
+  app.reset(); assert.equal(app.state.draft.patch, "16.19"); assert.equal(app.state.draft.firstPick, 1);
 });
 
 test("pool favorites load their stars and toggle without changing the draft or ordering", async () => {
@@ -273,7 +288,7 @@ test("keyboard routing preserves dialogs, editable controls, navigation and brow
     const event = app.type(key, undefined, details);
     assert.equal(event.defaultPrevented, Boolean(details.defaultPrevented), key);
   }
-  for (const target of [app.get("draft-name"), app.get("saved-drafts"), {isContentEditable: true}]) {
+  for (const target of [app.get("draft-name"), app.get("saved-drafts"), app.get("patch"), app.get("first-pick"), {isContentEditable: true}]) {
     assert.equal(app.type("a", target).defaultPrevented, false);
   }
   app.openExport(); assert.equal(app.type("a").defaultPrevented, false);
@@ -333,7 +348,7 @@ test("saved snapshots appear after reopening and load their exact slots with fre
   app.get("saved-drafts").value = saved.id; app.doubleClickSaved();
   assert.equal(app.storageRequests[0].url, `/api/drafts/${saved.id}`);
   await app.respondStorage(0, saved);
-  assert.deepEqual(app.state.draft, saved.draft); assert.equal(app.state.selected, null);
+  assert.deepEqual(JSON.parse(JSON.stringify(app.state.draft)), saved.draft); assert.equal(app.state.selected, null);
   assert.equal(app.state.selectedChampion, null); assert.equal(app.get("draft-dialog").open, false);
   assert.deepEqual(app.requests[0].draft, saved.draft); await app.respond(0, .61);
   assert.equal(app.state.logit, .61);
@@ -377,6 +392,7 @@ test("an unavailable saved draft list leaves the editor and saving usable", asyn
 
 test("JSON download and external import round-trip the current draft without saving it on the server", async () => {
   const app = await setup(false);
+  app.setPatch("16.18"); app.setFirstPick(0);
   app.choose(1, "blue", "picks", 3); app.choose(2, "red", "bans", 4);
   app.exportFile("Match one");
   assert.equal(app.get("draft-dialog").open, true);
@@ -389,6 +405,7 @@ test("JSON download and external import round-trip the current draft without sav
   const contents = await app.exportedBlobs[0].text();
   assert.deepEqual(Object.keys(JSON.parse(contents)), ["draft"]);
   assert.equal(JSON.parse(contents).draft.blue.picks[3], "Aatrox");
+  assert.equal(JSON.parse(contents).draft.patch, "16.18"); assert.equal(JSON.parse(contents).draft.firstPick, 0);
   app.closeDialog(); assert.equal(app.get("draft-dialog").open, false);
   app.reset(); await app.importFile("match.json", contents);
   assert.equal(app.get("draft-dialog-title").textContent, "Import Draft");
@@ -398,6 +415,7 @@ test("JSON download and external import round-trip the current draft without sav
   assert.equal(app.get("draft-file").value, "");
   assert.equal(app.state.draft.blue.picks[3], 1);
   assert.equal(app.state.draft.red.bans[4], 2);
+  assert.equal(app.state.draft.patch, "16.18"); assert.equal(app.state.draft.firstPick, 0);
   assert.equal(app.storageRequests.length, 0);
   assert.match(app.get("storage-status").textContent, /Imported/);
 });
@@ -432,6 +450,14 @@ test("older JSON exports with a Sol version can still be imported", async () => 
   const older = draft.emptyDraft(); older.red.bans[4] = "Aatrox";
   await app.importFile("older.json", JSON.stringify({sol_version: 99, draft: older}));
   assert.equal(app.state.draft.red.bans[4], 1);
+});
+
+test("legacy imports mark a missing patch as unknown instead of inheriting the current patch", async () => {
+  const app = await setup(false); app.setPatch("16.19"); app.setFirstPick(0);
+  const legacy = draft.emptyDraft(); delete legacy.patch; delete legacy.firstPick;
+  await app.importFile("legacy.json", JSON.stringify({draft: legacy}));
+  assert.equal(app.state.draft.patch, null); assert.equal(app.state.draft.firstPick, 1);
+  assert.equal(app.get("patch").value, ""); assert.equal(app.get("first-pick").value, "1");
 });
 
 test("a saved draft copied from drafts/ can be imported from another directory", async () => {

@@ -44,6 +44,17 @@ class DraftTests(unittest.TestCase):
       invalid = {**self.draft, "blue": {**self.draft["blue"], "picks": [{"champion_id": 1, "role": role}, None, None, None, None]}}
       with self.subTest(role=role), self.assertRaises(ValueError): validate_draft(invalid, self.ids)
 
+  def test_validates_draft_context(self:DraftTests)->None:
+    for first_pick in (0, 1):
+      value = {**self.draft, "firstPick": first_pick, "patch": "16.18"}
+      self.assertIs(validate_draft(value, self.ids), value)
+    for first_pick in (True, "1", None, -1, 2):
+      with self.subTest(firstPick=first_pick), self.assertRaises(ValueError):
+        validate_draft({**self.draft, "firstPick": first_pick}, self.ids)
+    for patch_value in (True, 16.18, "", " ", "x" * 17):
+      with self.subTest(patch=patch_value), self.assertRaises(ValueError):
+        validate_draft({**self.draft, "patch": patch_value}, self.ids)
+
   def test_bridge_uses_sol_ids_and_has_no_fake_roles(self:DraftTests)->None:
     champions:list[bridge.Champion] = bridge.champions()
     self.assertEqual({champion["name"]: champion["id"] for champion in champions}, bridge.CHAMPION_IDS)
@@ -53,12 +64,21 @@ class DraftTests(unittest.TestCase):
     for version in (0, -1, 999999):
       with self.subTest(version=version), self.assertRaises(ValueError): bridge.validate_version(version)
 
-  def test_evaluator_passes_ordered_picks_to_inference(self:DraftTests)->None:
+  def test_evaluator_passes_all_draft_inputs_to_inference(self:DraftTests)->None:
     self.draft["blue"]["picks"] = [1, 2, 3, 4, 5]
     self.draft["red"]["picks"] = [6, 7, 8, 9, 10]
     self.draft["red"]["bans"][0] = 157
+    self.draft["firstPick"], self.draft["patch"] = 0, "16.18"
     model = object(); output = Mock(); output.item.return_value = -.35
     with patch("sol.inference.load_model", return_value=model) as load, patch("sol.inference.predict", return_value=output) as predict:
       self.assertEqual(bridge.evaluator(1, self.draft), -.35)
     load.assert_called_once_with(1)
-    predict.assert_called_once_with(model, [{"champion": {"blue": [1, 2, 3, 4, 5], "red": [6, 7, 8, 9, 10]}}])
+    predict.assert_called_once_with(model, [{"champion": {"blue": [1, 2, 3, 4, 5], "red": [6, 7, 8, 9, 10]},
+      "ban": {"blue": [None] * 5, "red": [157, None, None, None, None]}, "firstPick": 0, "patch": "16.18"}])
+
+  def test_legacy_drafts_default_to_blue_first_and_an_unknown_patch(self:DraftTests)->None:
+    output = Mock(); output.item.return_value = 0.0
+    with patch("sol.inference.load_model"), patch("sol.inference.predict", return_value=output) as predict:
+      bridge.evaluator(1, self.draft)
+    inputs = predict.call_args.args[1][0]
+    self.assertEqual(inputs["firstPick"], 1); self.assertIsNone(inputs["patch"])
