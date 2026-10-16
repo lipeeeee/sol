@@ -3,8 +3,9 @@ from sol.utils import *
 
 # create signature value after benchmarks, like elo
 # confidence and correctness should be awarded more while confidence and error should be punsihed more
+# Q: do we add names/categories to drafts so we can diagnose which version is failing where? probably a good idea
 
-models:list[int|str] = [1]
+model_list:list[int|str] = [1]
 
 
 tests:list[dict] = [

@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from pathlib import Path
 from typing import TypedDict
-from metadata.champion_ids import CHAMPION_IDS
+from sol.metadata.champion_ids import CHAMPION_IDS
 from draft import Draft
 
 ROOT:Path = Path(__file__).resolve().parent.parent
@@ -16,8 +16,8 @@ def evaluator(version:int, draft:Draft)->float:
   return predict(load_model(version), [inputs]).item()
 
 def validate_version(version:int)->None:
-  if version < 1 or not (ROOT / "configs" / f"sol_{version}.py").is_file():
-    raise ValueError(f"Unknown Sol version {version}: configs/sol_{version}.py does not exist")
+  if version < 1 or not (ROOT / "sol" / "config" / f"sol_{version}.py").is_file():
+    raise ValueError(f"Unknown Sol version {version}: sol/config/sol_{version}.py does not exist")
 
 def champions()->list[Champion]:
   assert all(type(value) is int and value > 0 for value in CHAMPION_IDS.values()), "Sol IDs must be positive integers"

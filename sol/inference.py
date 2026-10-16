@@ -1,5 +1,5 @@
 from sol.utils import *
-from metadata.champion_ids import CHAMPION_IDS
+from sol.metadata.champion_ids import CHAMPION_IDS
 from torch import Tensor
 from types import ModuleType
 from pathlib import Path
@@ -15,9 +15,9 @@ def champ_id(x:str|int) -> int: return CHAMPION_IDS[x] if isinstance(x, str) els
 def load_model(version:str|int) -> ModuleType:
   name = version if isinstance(version, str) else f"sol_{version}"
   if (sol:=_version_cache.get(name)) is not None: return sol
-  try: sol = importlib.import_module(f"configs.{name}")
+  try: sol = importlib.import_module(f"sol.config.{name}")
   except ModuleNotFoundError as e:
-    if e.name != f"configs.{name}": raise
+    if e.name != f"sol.config.{name}": raise
     sys.exit(f"could not find '{name}' version of sol")
   assert_model_integrity(sol)
   if DEBUG >= 1: print(f"inference: loaded {name}")

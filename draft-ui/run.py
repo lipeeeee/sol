@@ -12,7 +12,7 @@ from server import Handler, STATIC, UI
 
 def main()->None:
   parser = argparse.ArgumentParser(description="Run Sol's local draft editor")
-  parser.add_argument("version", type=int, help="Sol version, e.g. 1 for configs/sol_1.py")
+  parser.add_argument("version", type=int, help="Sol version, e.g. 1 for sol/config/sol_1.py")
   parser.add_argument("--port", type=int, default=8765)
   args = parser.parse_args()
   try: bridge.validate_version(args.version)

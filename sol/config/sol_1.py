@@ -1,6 +1,6 @@
 """Ultra-Slim Additive champion-role strengths, model weighs 3.5Kb"""
 from sol.utils import *
-from metadata.champion_ids import CHAMPION_IDS 
+from sol.metadata.champion_ids import CHAMPION_IDS
 from sol.dataset import SolDataset, split_games
 from functools import partial
 from torch import Tensor, nn, optim

@@ -32,9 +32,9 @@ Use ordinary functions and the standard HTTP handler. The module boundaries requ
 python3 draft-ui/run.py 1 --port 8765
 ```
 
-Resolve the repository from `__file__`, add its root to Python's import path, and validate the version against `configs/sol_<version>.py`. Prepare champion metadata and artwork mapping, then start `ThreadingHTTPServer` on `127.0.0.1`.
+Resolve the repository from `__file__`, add its root to Python's import path, and validate the version against `sol/config/sol_<version>.py`. Prepare champion metadata and artwork mapping, then start `ThreadingHTTPServer` on `127.0.0.1`.
 
-Read `metadata/champion_ids.py` in the bridge. Assert positive unique integer IDs and nonempty names. Return rows with `id`, `name`, and `roles`. Until shared role metadata exists, emit empty preference lists. Translate its eventual encoding only in this module.
+Read `sol/metadata/champion_ids.py` in the bridge. Assert positive unique integer IDs and nonempty names. Return rows with `id`, `name`, and `roles`. Until shared role metadata exists, emit empty preference lists. Translate its eventual encoding only in this module.
 
 Keep the evaluator connection as one optional callable:
 

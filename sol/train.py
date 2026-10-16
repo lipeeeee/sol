@@ -10,7 +10,7 @@ from torch import optim
 name = sys.argv[1] if len(sys.argv) > 1 else "sol_1"
 if name.isdigit(): name = f"sol_{name}"
 try:
-  sol = importlib.import_module(f"configs.{name}")
+  sol = importlib.import_module(f"sol.config.{name}")
 except ModuleNotFoundError:
   print(f"could not find \'{name}\' version of sol. (e.g sol_1)")
   sys.exit(-1)

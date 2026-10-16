@@ -8,7 +8,7 @@ Build a small local draft editor, using the second reference screenshot as the m
 python draft-ui/run.py 1
 ```
 
-The argument selects `configs.sol_1`. The page supports freely editing picks and bans, with automatic evaluation showing estimated blue/red win probabilities once an evaluator is connected. The drafting agent searches for optimal role assignments.
+The argument selects `sol.config.sol_1`. The page supports freely editing picks and bans, with automatic evaluation showing estimated blue/red win probabilities once an evaluator is connected. The drafting agent searches for optimal role assignments.
 
 V1 delivers the editor and evaluation hook. This checkout has no runnable evaluator yet, so its unavailable state will be explicit.
 
@@ -56,7 +56,7 @@ Use keyboard-accessible controls and visible focus states. Empty pick cards show
 
 **Champion identity and roles**
 
-Keep [Sol's champion IDs](../metadata/champion_ids.py) authoritative. Browser state and evaluation requests use those IDs.
+Keep [Sol's champion IDs](../sol/metadata/champion_ids.py) authoritative. Browser state and evaluation requests use those IDs.
 
 Each side contains five ordered nullable champion IDs in `picks` and five in `bans`. Preserve empty positions; never compact arrays or invent missing selections. Role assignments do not appear in snapshots.
 
