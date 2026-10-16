@@ -5,6 +5,9 @@
 
 required flags to run are in `FLAGS.txt`
 
+# specs 
+[Dataset field specification](spec/dataset.pdf)
+
 # usage
 ```sh
 # training

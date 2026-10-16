@@ -8,6 +8,11 @@ draft-ui/favorites.json
 
 .sol_env
 
+# latex compile
+*.aux
+*.fdb_latexmk
+*.fls
+*.out
 
 # --------------- Python.gitignore --------------- 
 # Byte-compiled / optimized / DLL files
