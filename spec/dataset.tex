@@ -1,0 +1,263 @@
+\documentclass[10pt,letterpaper]{article}
+
+\usepackage[margin=0.75in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{listings}
+\lstset{language=Python, basicstyle=\ttfamily\small, columns=fullflexible, keepspaces=true}
+
+\newcommand{\field}[1]{\texttt{\detokenize{#1}}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\definecolor{movgreen}{HTML}{2E7D32}
+\definecolor{reducered}{HTML}{C62828}
+\definecolor{callblue}{HTML}{1565C0}
+\definecolor{assignbrown}{HTML}{795548}
+\definecolor{multipurple}{HTML}{7B1FA2}
+\definecolor{markerorange}{HTML}{E65100}
+
+\title{sol: a field specification from CSV rows to training batches}
+\author{sol}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\section*{SolData}
+\field{SolDataset.data} is a field-first dictionary: \field{data[field][g]} selects one field of one game.
+The integer $g$ is a local game index; \field{data["gameid"][g]} is the original Oracle's Elixir game ID.
+All CSV cells remain \textbf{strings}, including numbers, flags, and empty cells (\field{""}).
+Numeric conversion, champion encoding, and tensors belong to the model configuration.
+
+\subsection*{Access Forms \normalfont\small--- three value layouts}
+\noindent\begin{tabular}{@{}l l l L{6.5cm}@{}}
+\toprule
+\textbf{Scope} & \textbf{Access} & \textbf{Value} & \textbf{Semantics} \\
+\midrule
+{\color{callblue}Match} & \field{data[f][g]} & \field{str} & One value from the first player row. \\
+{\color{movgreen}Player} & \field{data[f][g][p]} & \field{str} & One of ten players, ordered by side and role. \\
+{\color{multipurple}Team} & \field{data["team_"+f][g][s]} & \field{str} & Team-row value; $s$ is an integer dictionary key. \\
+{\color{markerorange}Draft} & \field{data[f][g][s]} & \field{str} or \field{list[str]} & Special fields below; no \field{team_} prefix. \\
+\bottomrule
+\end{tabular}
+
+\subsection*{Indices \normalfont\small--- role order is shared by all player fields}
+\noindent\begin{tabular}{@{}l c c c c c@{}}
+\toprule
+\textbf{Side} & \textbf{top} & \textbf{jng} & \textbf{mid} & \textbf{bot} & \textbf{sup} \\
+\midrule
+Blue ($s=0$) & $p=0$ & $p=1$ & $p=2$ & $p=3$ & $p=4$ \\
+Red ($s=1$) & $p=5$ & $p=6$ & $p=7$ & $p=8$ & $p=9$ \\
+\bottomrule
+\end{tabular}
+\smallskip
+
+\noindent $p=5s+r$, with $r \in \{0,1,2,3,4\}$ in the role order above.
+Team and draft values use \field{dict[int, ...]} with keys \field{0}, \field{1}; player values use \field{list[str]} of length ten.
+
+\subsection*{Default Fields \normalfont\small--- present after a fresh extraction without extra requests}
+\noindent\begin{tabular}{@{}l l L{9.0cm}@{}}
+\toprule
+\textbf{Field} & \textbf{Value at $g$} & \textbf{Semantics} \\
+\midrule
+\field{gameid} & \field{str} & Original game ID, distinct from local index $g$. \\
+\field{date} & \field{str} & Timestamp, typically \field{YYYY-MM-DD HH:MM:SS}; used for splitting. \\
+\field{patch} & \field{str} & Patch label, e.g.\ \field{"16.18"}; preserved as text. \\
+\field{champion} & \field{list[str]} & Ten champion names in side/role order, not pick order. \\
+\field{position} & \field{list[str]} & \field{["top", "jng", "mid", "bot", "sup"] * 2}. \\
+\field{result} & \field{list[str]} & Ten player results: \field{"1"} for a win, \field{"0"} for a loss. \\
+\field{team_result} & \field{dict[int, str]} & Team outcomes; \field{data["team_result"][g][0]} is Blue's label. \\
+\field{firstPick} & \field{dict[int, str]} & Per-side first-pick flag, \field{"1"} or \field{"0"}. Empty cells default to Blue first. \\
+\field{pick_order} & \field{dict[int, list[str]]} & Five names per side, copied from the team row's \field{pick1}--\field{pick5}. \\
+\field{ban_order} & \field{dict[int, list[str]]} & Five names per side, copied from the team row's \field{ban1}--\field{ban5}. \\
+\bottomrule
+\end{tabular}
+\smallskip
+
+\noindent \field{REQUIRED_FIELDS} names nine fields; \field{team_result} is also emitted because \field{result} is required.
+Pick and ban slots preserve each side's recorded order, not a merged sequence of draft turns.
+
+\newpage
+\section*{CSV Field Catalog}
+The following catalog covers the shared 165-column header of the local 2020--2026 CSVs.
+Apart from the default fields, columns must be named in \field{requested_fields}.
+Spellings, spaces, capitalization, and parentheses are literal.
+
+\subsection*{{\color{callblue}Match Fields} \normalfont\small--- \field{data[f][g]}}
+\noindent\begin{tabular}{@{}l L{13.1cm}@{}}
+\toprule
+\textbf{Field} & \textbf{Semantics} \\
+\midrule
+\field{gameid} & Original game identifier. \\
+\field{url} & Source match URL. \\
+\field{league} & League or competition label. \\
+\field{year} & Dataset year as text. \\
+\field{split} & Split or season label. \\
+\field{playoffs} & Playoff flag: \field{"1"} or \field{"0"}. \\
+\field{date} & Game timestamp, copied from the first player row. \\
+\field{game} & Game number within the series; raw cell, possibly empty. \\
+\field{patch} & Patch label. \\
+\field{datacompleteness} & \field{"complete"} or \field{"partial"}. \\
+\bottomrule
+\end{tabular}
+
+\subsection*{{\color{movgreen}Player and Team Fields} \normalfont\small--- request the CSV column name}
+For every CSV column $f$ outside the ten match fields and \field{firstPick}, extraction creates
+\field{data[f][g]} as a ten-player list. It also creates \field{data["team_"+f][g]} from the two team rows,
+except for \field{champion} and \field{position}. Team cells are copied directly; they are not sums of player cells.
+
+\noindent\begin{tabular}{@{}l L{13.1cm}@{}}
+\toprule
+\textbf{Field} & \textbf{Semantics} \\
+\midrule
+\field{participantid} & Source participant identifier; independent of the zero-based player index $p$. \\
+\field{side} & \field{"Blue"} or \field{"Red"}. \\
+\field{position} & Player role; no \field{team_position} is produced. \\
+\field{playername}, \field{playerid} & Player display name and source ID. Team-row cells may be empty. \\
+\field{teamname}, \field{teamid} & Player's team name and source ID. Their team-row keys are \field{team_teamname}, \field{team_teamid}. \\
+\field{champion} & Champion name; no \field{team_champion} is produced. \\
+\bottomrule
+\end{tabular}
+
+\subsection*{{\color{markerorange}Draft Columns} \normalfont\small--- grouped fields are always available}
+\noindent\begin{tabular}{@{}l L{12.2cm}@{}}
+\toprule
+\textbf{Field} & \textbf{Semantics} \\
+\midrule
+\field{firstPick} & Special side dictionary, never a player list or \field{team_firstPick}. The CSV name is case-sensitive. \\
+\field{pick1}, \field{pick2}, \field{pick3}, & Optional raw columns. Requesting one creates a player list and its \field{team_} counterpart. Player cells may be empty. \\
+\field{pick4}, \field{pick5} & The default \field{pick_order} already groups the five team cells. \\[3pt]
+\field{ban1}, \field{ban2}, \field{ban3}, & Optional raw columns with the same player/team rule. \\
+\field{ban4}, \field{ban5} & The default \field{ban_order} groups the five team cells. \\
+\bottomrule
+\end{tabular}
+
+\subsection*{Request Rules}
+\begin{lstlisting}
+data = SolDataset().extract_base_data(requested_fields=["kills", "teamname"]).data
+g = next(iter(data["gameid"]))
+blue_team = data["team_teamname"][g][0]
+blue_kills = int(data["team_kills"][g][0])
+\end{lstlisting}
+Request \field{"kills"} to obtain both \field{kills} and \field{team_kills}; requesting only \field{"team_kills"} does not load it.
+Requests absent from the CSV header do not create populated fields.
+The nested \field{defaultdict}s create empty entries on missing lookups: check \field{f in data} and \field{g in data[f]} before reading uncertain keys.
+
+\newpage
+\section*{Statistics}
+All fields on this and the next page use the player/team rule:
+\field{data[f][g][p]} and \field{data["team_"+f][g][s]}.
+Numbers remain strings. Available columns can contain empty cells, including on team rows and for metrics absent in older patches.
+
+\subsection*{{\color{reducered}Result and Combat}}
+\noindent\begin{tabular}{@{}L{8.5cm} L{8.8cm}@{}}
+\toprule
+\textbf{Field} & \textbf{Semantics} \\
+\midrule
+\field{gamelength}, \field{result} & Duration in seconds; win/loss flag. \\
+\field{kills}, \field{deaths}, \field{assists} & Recorded combat totals. \\
+\field{teamkills}, \field{teamdeaths} & Team totals stored in these source columns; distinct from the \field{team_} prefix rule. \\
+\field{doublekills}, \field{triplekills}, \field{quadrakills}, \field{pentakills} & Multi-kill counts. \\
+\field{firstblood} & Team first-blood flag. \\
+\field{firstbloodkill}, \field{firstbloodassist}, \field{firstbloodvictim} & Player first-blood involvement flags. \\
+\field{team kpm}, \field{ckpm} & Team kills per minute; combined kills per minute. The space in \field{team kpm} is part of the name. \\
+\bottomrule
+\end{tabular}
+
+\subsection*{{\color{reducered}Objectives and Structures}}
+\noindent\begin{tabular}{@{}L{8.5cm} L{8.8cm}@{}}
+\toprule
+\textbf{Field} & \textbf{Semantics} \\
+\midrule
+\field{firstdragon}, \field{dragons}, \field{opp_dragons} & First-dragon flag; own and opposing dragon counts. \\
+\field{elementaldrakes}, \field{opp_elementaldrakes} & Own and opposing elemental drake counts. \\
+\field{infernals}, \field{mountains}, \field{clouds}, \field{oceans}, \field{chemtechs}, \field{hextechs} & Drake counts by element. \\
+\field{dragons (type unknown)} & Dragon count without a known type; spaces and parentheses are part of the key. \\
+\field{elders}, \field{opp_elders} & Own and opposing Elder Dragon counts. \\
+\field{firstherald}, \field{heralds}, \field{opp_heralds} & First-Herald flag; own and opposing Herald counts. \\
+\field{void_grubs}, \field{opp_void_grubs} & Own and opposing Void Grub counts. \\
+\field{firstbaron}, \field{barons}, \field{opp_barons} & First-Baron flag; own and opposing Baron counts. \\
+\field{atakhans}, \field{opp_atakhans} & Own and opposing Atakhan counts. \\
+\field{firsttower}, \field{towers}, \field{opp_towers} & First-tower flag; own and opposing tower counts. \\
+\field{firstmidtower}, \field{firsttothreetowers} & First mid tower; first team to three towers flags. \\
+\field{turretplates}, \field{opp_turretplates} & Own and opposing turret plate counts. \\
+\field{inhibitors}, \field{opp_inhibitors} & Own and opposing inhibitor counts. \\
+\bottomrule
+\end{tabular}
+
+\subsection*{{\color{reducered}Damage and Vision}}
+\noindent\begin{tabular}{@{}L{8.5cm} L{8.8cm}@{}}
+\toprule
+\textbf{Field} & \textbf{Semantics} \\
+\midrule
+\field{damagetochampions}, \field{dpm}, \field{damageshare} & Champion damage, damage per minute, and damage share. \\
+\field{damagetakenperminute}, \field{damagemitigatedperminute} & Damage taken and mitigated per minute. \\
+\field{damagetotowers} & Damage to towers. \\
+\field{wardsplaced}, \field{wpm}, \field{wardskilled}, \field{wcpm} & Wards placed and cleared, with per-minute rates. \\
+\field{controlwardsbought} & Control wards purchased. \\
+\field{visionscore}, \field{vspm} & Vision score and vision score per minute. \\
+\bottomrule
+\end{tabular}
+
+\newpage
+\subsection*{{\color{reducered}Gold and Farming}}
+\noindent\begin{tabular}{@{}L{8.5cm} L{8.8cm}@{}}
+\toprule
+\textbf{Field} & \textbf{Semantics} \\
+\midrule
+\field{totalgold}, \field{earnedgold}, \field{goldspent} & Total, earned, and spent gold. \\
+\field{earned gpm}, \field{earnedgoldshare} & Earned gold per minute; share of team earned gold. \\
+\field{gspd}, \field{gpr} & Provider's gold advantage metrics, copied unchanged. \\
+\field{total cs}, \field{cspm} & Total creep score and creep score per minute. The space in \field{total cs} is literal. \\
+\field{minionkills}, \field{monsterkills} & Lane minion and neutral monster kills. \\
+\field{monsterkillsownjungle}, \field{monsterkillsenemyjungle} & Monster kills in the own and opposing jungle. \\
+\bottomrule
+\end{tabular}
+
+\subsection*{{\color{reducered}Timed Statistics} \normalfont\small--- literal names at 10, 15, 20, and 25 minutes}
+\begingroup
+\small
+\noindent\begin{tabular}{@{}l l l l l@{}}
+\toprule
+\textbf{Quantity} & \textbf{10 min} & \textbf{15 min} & \textbf{20 min} & \textbf{25 min} \\
+\midrule
+Gold & \field{goldat10} & \field{goldat15} & \field{goldat20} & \field{goldat25} \\
+Experience & \field{xpat10} & \field{xpat15} & \field{xpat20} & \field{xpat25} \\
+Creep score & \field{csat10} & \field{csat15} & \field{csat20} & \field{csat25} \\[3pt]
+Opponent gold & \field{opp_goldat10} & \field{opp_goldat15} & \field{opp_goldat20} & \field{opp_goldat25} \\
+Opponent XP & \field{opp_xpat10} & \field{opp_xpat15} & \field{opp_xpat20} & \field{opp_xpat25} \\
+Opponent CS & \field{opp_csat10} & \field{opp_csat15} & \field{opp_csat20} & \field{opp_csat25} \\[3pt]
+Gold difference & \field{golddiffat10} & \field{golddiffat15} & \field{golddiffat20} & \field{golddiffat25} \\
+XP difference & \field{xpdiffat10} & \field{xpdiffat15} & \field{xpdiffat20} & \field{xpdiffat25} \\
+CS difference & \field{csdiffat10} & \field{csdiffat15} & \field{csdiffat20} & \field{csdiffat25} \\[3pt]
+Kills & \field{killsat10} & \field{killsat15} & \field{killsat20} & \field{killsat25} \\
+Assists & \field{assistsat10} & \field{assistsat15} & \field{assistsat20} & \field{assistsat25} \\
+Deaths & \field{deathsat10} & \field{deathsat15} & \field{deathsat20} & \field{deathsat25} \\[3pt]
+Opponent kills & \field{opp_killsat10} & \field{opp_killsat15} & \field{opp_killsat20} & \field{opp_killsat25} \\
+Opponent assists & \field{opp_assistsat10} & \field{opp_assistsat15} & \field{opp_assistsat20} & \field{opp_assistsat25} \\
+Opponent deaths & \field{opp_deathsat10} & \field{opp_deathsat15} & \field{opp_deathsat20} & \field{opp_deathsat25} \\
+\bottomrule
+\end{tabular}
+\endgroup
+\smallskip
+
+\noindent \field{opp_} denotes the opposing player/team as recorded by the provider.
+Difference fields are recorded own-minus-opponent values.
+Timed cells can be empty when the game ends before the timestamp or the source lacks detailed statistics.
+Do not infer numeric zero from an empty cell.
+
+\subsection*{{\color{multipurple}Team Naming} \normalfont\small--- the prefix is always prepended verbatim}
+\noindent\begin{tabular}{@{}l l l@{}}
+\toprule
+\textbf{Request} & \textbf{Player Access} & \textbf{Team Access} \\
+\midrule
+\field{"teamname"} & \field{data["teamname"][g][p]} & \field{data["team_teamname"][g][s]} \\
+\field{"teamkills"} & \field{data["teamkills"][g][p]} & \field{data["team_teamkills"][g][s]} \\
+\field{"team kpm"} & \field{data["team kpm"][g][p]} & \field{data["team_team kpm"][g][s]} \\
+\field{"earned gpm"} & \field{data["earned gpm"][g][p]} & \field{data["team_earned gpm"][g][s]} \\
+\field{"total cs"} & \field{data["total cs"][g][p]} & \field{data["team_total cs"][g][s]} \\
+\bottomrule
+\end{tabular}
+\end{document}
