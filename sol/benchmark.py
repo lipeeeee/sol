@@ -2,6 +2,7 @@
 from sol.utils import *
 from sol import inference
 from torch import Tensor, sigmoid
+from collections import Counter
 import math
 
 # create signature value after benchmarks, like elo
@@ -16,13 +17,13 @@ import math
 # benchmark_score = 100 * (1 - average_loss / ln(2)) # i dont understand logs
 
 model_list:list[str] = ["sol_1"]
-category_loss_per_model:defaultdict[str, defaultdict[str, float]] = defaultdict(lambda: defaultdict(float)) # model: {category: loss}
 
 @torch.no_grad
 def evaluate_model(model:str):
   m = inference.load_model(model)
   y:Tensor = inference.predict(m, tests)
   all_loss:float = 0
+  loss_per_category:dict[str, float] = defaultdict(lambda: 0.0)
   
   # WARNING: THIS IS ASSUMING OUTPUT IS 1 HEAD ONLY! REFACTORING NEEDS TO BE DONE
   for entry, test in zip(y, tests, strict=True):
@@ -31,10 +32,14 @@ def evaluate_model(model:str):
     loss = -torch.log(q)
 
     all_loss += loss.item()
-    category_loss_per_model[model][test["category"]] += loss.item()
+    loss_per_category[test["category"]] += loss.item()
   average_loss = all_loss / len(tests)
   benchmark_score = 100 * (1 - average_loss / math.log(2))
-  return benchmark_score
+  score_per_category:dict[str, float] = {
+    category: 100 * (1 - (total_loss / category_counts[category]) / math.log(2))
+    for category, total_loss in loss_per_category.items()
+  }
+  return benchmark_score, score_per_category
 
 
 tests:list[dict] = [
@@ -63,8 +68,9 @@ tests:list[dict] = [
     },
     "firstPick": 1,
     "patch": "16.18"
-  }
+  },
 ]
+category_counts = Counter(test["category"] for test in tests)
 
 if __name__ == "__main__":
-  evaluate_model(model_list[0])
+  print(evaluate_model(model_list[0]))
