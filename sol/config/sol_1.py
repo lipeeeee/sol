@@ -22,17 +22,17 @@ class Sol_1(nn.Module):
     nn.init.zeros_(self.strength_emb.weight)
     self.bias = nn.Parameter(torch.zeros(1))
 
-  def forward(self, champ:Tensor) -> Tensor:
+  def forward(self, champ:Tensor) -> dict[str, Tensor]:
     positions = torch.arange(10, device=champ.device)
     roles = positions % self.strength_emb.embedding_dim
     strengths = self.strength_emb(champ)[:, positions, roles]
-    return self.bias + strengths[:, :5].sum(dim=1) - strengths[:, 5:].sum(dim=1)
+    return {"win_logits": self.bias + strengths[:, :5].sum(dim=1) - strengths[:, 5:].sum(dim=1)}
 model = Sol_1().to(_device)
 if DEBUG >= 1: print(model, count_params(model))
 
-def calculate_loss(predictions:Tensor, batch:dict) -> Tensor:
-  assert isinstance(predictions, Tensor); assert isinstance(batch, dict)
-  return nn.functional.binary_cross_entropy_with_logits(predictions, batch["result"])
+def calculate_loss(predictions:dict[str, Tensor], batch:dict[str, Tensor]) -> Tensor:
+  assert isinstance(predictions, dict); assert isinstance(batch, dict)
+  return nn.functional.binary_cross_entropy_with_logits(predictions["win_logits"], batch["result"])
 
 if TRAINING:
   sd = SolDataset()

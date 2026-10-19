@@ -13,7 +13,7 @@ def evaluator(version:int, draft:Draft)->float:
   inputs = {"champion": {side: draft[side]["picks"] for side in ("blue", "red")},
             "ban": {side: draft[side]["bans"] for side in ("blue", "red")},
             "firstPick": draft.get("firstPick", 1), "patch": draft.get("patch")}
-  return predict(load_model(version), [inputs]).item()
+  return predict(load_model(version), [inputs])["win_logits"].item()
 
 def validate_version(version:int)->None:
   if version < 1 or not (ROOT / "sol" / "config" / f"sol_{version}.py").is_file():

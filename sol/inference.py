@@ -40,7 +40,7 @@ def prepare_tensors(inputs:list[dict], device) -> dict[str, Tensor]: # for predi
     [champ_id(name) for name in draft["champion"]["blue"] + draft["champion"]["red"]]
     for draft in inputs], dtype=torch.long, device=device)
   return tensors
-def predict(sol:ModuleType, x:list[dict]) -> Tensor: # for now only assume json/dict is viable for prediction
+def predict(sol:ModuleType, x:list[dict]) -> dict[str, Tensor]: # for now only assume json/dict is viable for prediction
   # x= [{"champion": {"blue": [], "red": []}, "ban": {"blue": [], "red": []}, "firstPick": int, "patch": str|None}, ...]
   # NOTE: should we assert device here? there is probably a device contract problem in sol
   tensors = prepare_tensors(x, device=sol.training_params["device"])

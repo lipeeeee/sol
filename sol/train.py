@@ -51,12 +51,12 @@ def evaluate(loader:DataLoader) -> tuple[float, float]:
   total_correct:int = 0
   for batch in loader:
     batch = {key: tensor.to(training_config["device"]) for key, tensor in batch.items()}
-    predictions = sol.model(*(batch[key] for key in sol.inputs))
-    loss = sol.calculate_loss(predictions, batch)
+    y = sol.model(*(batch[key] for key in sol.inputs))
+    loss = sol.calculate_loss(y, batch)
     batch_size = len(batch[sol.inputs[0]])
     total_loss += loss.item() * batch_size
     total_samples += batch_size
-    total_correct += ((predictions >= 0) == batch["result"].bool()).sum().item()
+    total_correct += ((y["win_logits"]>=0) == batch["result"].bool()).sum().item()
   return total_loss / total_samples, total_correct / total_samples
 
 for epoch in range(training_config["epochs"]):
@@ -68,14 +68,14 @@ for epoch in range(training_config["epochs"]):
   for batch in train_loader:
     batch = {key: tensor.to(training_config["device"]) for key, tensor in batch.items()}
     optimizer.zero_grad()
-    predictions = sol.model(*(batch[key] for key in sol.inputs))
-    loss = sol.calculate_loss(predictions, batch)
+    y = sol.model(*(batch[key] for key in sol.inputs))
+    loss = sol.calculate_loss(y, batch)
     loss.backward()
     optimizer.step()
     batch_size = len(batch[sol.inputs[0]])
     total_loss += loss.detach().item() * batch_size
     total_samples += batch_size
-    total_correct += ((predictions.detach() >= 0) == batch["result"].bool()).sum().item()
+    total_correct += ((y["win_logits"].detach()>=0) == batch["result"].bool()).sum().item()
 
   train_loss = total_loss / total_samples
   train_accuracy = total_correct / total_samples

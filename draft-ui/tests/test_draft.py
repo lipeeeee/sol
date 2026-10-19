@@ -70,7 +70,8 @@ class DraftTests(unittest.TestCase):
     self.draft["red"]["bans"][0] = 157
     self.draft["firstPick"], self.draft["patch"] = 0, "16.18"
     model = object(); output = Mock(); output.item.return_value = -.35
-    with patch("sol.inference.load_model", return_value=model) as load, patch("sol.inference.predict", return_value=output) as predict:
+    with patch("sol.inference.load_model", return_value=model) as load, \
+         patch("sol.inference.predict", return_value={"win_logits": output, "auxiliary": object()}) as predict:
       self.assertEqual(bridge.evaluator(1, self.draft), -.35)
     load.assert_called_once_with(1)
     predict.assert_called_once_with(model, [{"champion": {"blue": [1, 2, 3, 4, 5], "red": [6, 7, 8, 9, 10]},
@@ -78,7 +79,7 @@ class DraftTests(unittest.TestCase):
 
   def test_legacy_drafts_default_to_blue_first_and_an_unknown_patch(self:DraftTests)->None:
     output = Mock(); output.item.return_value = 0.0
-    with patch("sol.inference.load_model"), patch("sol.inference.predict", return_value=output) as predict:
+    with patch("sol.inference.load_model"), patch("sol.inference.predict", return_value={"win_logits": output}) as predict:
       bridge.evaluator(1, self.draft)
     inputs = predict.call_args.args[1][0]
     self.assertEqual(inputs["firstPick"], 1); self.assertIsNone(inputs["patch"])

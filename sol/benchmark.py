@@ -2,7 +2,6 @@
 from sol.utils import *
 from sol import inference
 from torch import Tensor, sigmoid
-from collections import Counter
 import math
 
 # create signature value after benchmarks, like elo
@@ -21,18 +20,17 @@ model_list:list[str] = ["sol_1"]
 @torch.no_grad
 def evaluate_model(model:str):
   m = inference.load_model(model)
-  y:Tensor = inference.predict(m, tests)
+  y:Tensor = inference.predict(m, tests)["win_logits"] # NOTE: should be able to evaluate multiple heads
   all_loss:float = 0
-  loss_per_category:dict[str, float] = defaultdict(lambda: 0.0)
+  loss_per_category:dict[str, float] = defaultdict(lambda: 0.0); category_counts:dict[str, int] = defaultdict(lambda: 0)
   
-  # WARNING: THIS IS ASSUMING OUTPUT IS 1 HEAD ONLY! REFACTORING NEEDS TO BE DONE
   for entry, test in zip(y, tests, strict=True):
     p_blue = sigmoid(entry)
     q = p_blue if test["awnser"] == 1 else 1 - p_blue
     loss = -torch.log(q)
 
     all_loss += loss.item()
-    loss_per_category[test["category"]] += loss.item()
+    loss_per_category[test["category"]] += loss.item(); category_counts[test["category"]] += 1
   average_loss = all_loss / len(tests)
   benchmark_score = 100 * (1 - average_loss / math.log(2))
   score_per_category:dict[str, float] = {
@@ -70,7 +68,6 @@ tests:list[dict] = [
     "patch": "16.18"
   },
 ]
-category_counts = Counter(test["category"] for test in tests)
 
 if __name__ == "__main__":
   print(evaluate_model(model_list[0]))

@@ -54,14 +54,14 @@ Input features keep the same meaning in training and inference. Shared preparati
 new features can be added conditionally on \field{inputs}. Inputs and model parameters use the configured execution device.
 
 \subsection*{{\color{callblue}Named Outputs}}
-Every \field{model.forward} and \field{inference.predict} call returns \field{dict[str, Tensor]} containing \field{"win"}.
+Every \field{model.forward} and \field{inference.predict} call returns \field{dict[str, Tensor]} containing \field{"win_logits"}.
 Each output preserves the input example order and its leading batch axis, including when $B=1$.
 
 \noindent\begin{tabular}{@{}L{3.2cm} L{2.6cm} L{11cm}@{}}
 \toprule
 \textbf{Key} & \textbf{Shape} & \textbf{Semantics} \\
 \midrule
-\field{"win"} & $(B,)$ & Floating-point Blue-win logits. For logit $z_i$, $P_i(\mathrm{Blue})=\sigma(z_i)$. \\
+\field{"win_logits"} & $(B,)$ & Floating-point Blue-win logits. For logit $z_i$, $P_i(\mathrm{Blue})=\sigma(z_i)$. \\
 Other names & $(B,\ldots)$ & Additional predictions; each head defines its dtype, trailing shape, and meaning. \\
 \bottomrule
 \end{tabular}
@@ -70,7 +70,7 @@ Other names & $(B,\ldots)$ & Additional predictions; each head defines its dtype
 \noindent Inference preserves the output dictionary and logits. Consumers select heads by name;
 adding a head preserves the meanings of existing keys.
 \begin{lstlisting}
-win_logits = inference.predict(sol, drafts)["win"]
+win_logits = inference.predict(sol, drafts)["win_logits"]
 \end{lstlisting}
 
 \subsection*{{\color{reducered}Loss}}
