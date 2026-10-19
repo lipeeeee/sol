@@ -1,0 +1,82 @@
+\documentclass[10pt,letterpaper]{article}
+
+\usepackage[margin=0.75in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{listings}
+\lstset{language=Python, basicstyle=\ttfamily\small, columns=fullflexible, keepspaces=true}
+
+\newcommand{\field}[1]{\texttt{\detokenize{#1}}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\definecolor{movgreen}{HTML}{2E7D32}
+\definecolor{reducered}{HTML}{C62828}
+\definecolor{callblue}{HTML}{1565C0}
+
+\title{sol: model interface}
+\author{sol}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\section*{Models}
+A Sol version is a Python module \field{sol.config.sol_n}.
+It defines the model, its input requirements, and its training objective. Let $B$ denote the batch size.
+
+\subsection*{Module Fields}
+\noindent\begin{tabular}{@{}L{3.4cm} L{3.3cm} L{10.1cm}@{}}
+\toprule
+\textbf{Field} & \textbf{Value} & \textbf{Semantics} \\
+\midrule
+\field{model} & \field{nn.Module} & Model instance; each forward pass returns named output tensors. \\
+\field{inputs} & \field{list[str]} & Nonempty, ordered input tensor names; determines positional argument order. \\
+\field{dtype} & \field{torch.dtype} & The version's floating-point dtype. \\
+\field{training_params} & \field{dict} & Training settings and execution device; overrides trainer defaults. \\
+\field{calculate_loss} & callable & Receives the output dictionary and batch; returns the training loss. \\
+\field{datasets} & \field{list[dict]} & Training only: tensor dictionaries in train, validation, test order. \\
+\bottomrule
+\end{tabular}
+
+\subsection*{{\color{movgreen}Inputs and Batches}}
+Datasets and batches are \field{dict[str, Tensor]}. All fields share a leading example axis;
+position $i$ identifies the same example in every field. Only names in \field{inputs} are forwarded to the model.
+Other fields, including targets, remain available to the loss function.
+
+\begin{lstlisting}
+predictions = sol.model(*(batch[key] for key in sol.inputs))
+loss = sol.calculate_loss(predictions, batch)
+\end{lstlisting}
+
+Input features keep the same meaning in training and inference. Shared preparation constructs the requested tensors;
+new features can be added conditionally on \field{inputs}. Inputs and model parameters use the configured execution device.
+
+\subsection*{{\color{callblue}Named Outputs}}
+Every \field{model.forward} and \field{inference.predict} call returns \field{dict[str, Tensor]} containing \field{"win"}.
+Each output preserves the input example order and its leading batch axis, including when $B=1$.
+
+\noindent\begin{tabular}{@{}L{3.2cm} L{2.6cm} L{11cm}@{}}
+\toprule
+\textbf{Key} & \textbf{Shape} & \textbf{Semantics} \\
+\midrule
+\field{"win"} & $(B,)$ & Floating-point Blue-win logits. For logit $z_i$, $P_i(\mathrm{Blue})=\sigma(z_i)$. \\
+Other names & $(B,\ldots)$ & Additional predictions; each head defines its dtype, trailing shape, and meaning. \\
+\bottomrule
+\end{tabular}
+\smallskip
+
+\noindent Inference preserves the output dictionary and logits. Consumers select heads by name;
+adding a head preserves the meanings of existing keys.
+\begin{lstlisting}
+win_logits = inference.predict(sol, drafts)["win"]
+\end{lstlisting}
+
+\subsection*{{\color{reducered}Loss}}
+\field{calculate_loss(predictions, batch)} receives all heads and returns a floating tensor of shape $()$,
+differentiable during training. It is a mean over the batch's examples: the trainer aggregates
+$\sum_j B_j L_j/\sum_j B_j$ across batches.
+The version defines its target fields, objectives, and head weights. Benchmarks define their own metrics on the selected heads.
+
+\end{document}

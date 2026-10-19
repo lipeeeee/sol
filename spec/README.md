@@ -1,1 +1,1 @@
-Run `./render.sh` whenever you update dataset.tex to regenerate dataset.pdf.
+Run `./render.sh` whenever you update *.tex to regenerate pdfs.
