@@ -1,33 +1,36 @@
 # private, selected game benchmark, still have to think about design on this
 from sol.utils import *
 from sol import inference
-from torch import Tensor, sigmoid
+from torch import Tensor
+from torch.nn.functional import binary_cross_entropy_with_logits
 import math
 
 # create signature value after benchmarks, like elo
+# simpler/basic labels/metrics
+# also allow checkpoints evaluation
 # confidence and correctness should be awarded more while confidence and error should be punsihed more
 # Q: do we add names/categories to drafts so we can diagnose which version is failing where? probably a good idea
 
 # p_blue = sigmoid(pred)
-# q = p_blue if awnser == 1 else (1 - p_blue)
-# loss = -ln(q) # this is 1 loss ln(1) == 0
+# awnser is the target Blue-win probability, between 0 and 1
+# loss = -awnser * ln(p_blue) - (1 - awnser) * ln(1 - p_blue)
 
 # average_loss = sum(all case_losses) / number_of_cases
 # benchmark_score = 100 * (1 - average_loss / ln(2)) # i dont understand logs
 
 model_list:list[str] = ["sol_1"]
 
+# NOTE: this probably will need to be turned into a helper class in order to make multi-head benchmarks!
 @torch.no_grad
 def evaluate_model(model:str):
   m = inference.load_model(model)
-  y:Tensor = inference.predict(m, tests)["win_logits"] # NOTE: should be able to evaluate multiple heads
+  y:Tensor = inference.predict(m, tests)["win_logits"] # NOTE: should be able to evaluate multiple heads, if some model doesnt have heads return 0, 0
   all_loss:float = 0
   loss_per_category:dict[str, float] = defaultdict(lambda: 0.0); category_counts:dict[str, int] = defaultdict(lambda: 0)
   
   for entry, test in zip(y, tests, strict=True):
-    p_blue = sigmoid(entry)
-    q = p_blue if test["awnser"] == 1 else 1 - p_blue
-    loss = -torch.log(q)
+    assert 0 <= test["awnser"] <= 1, "awnser must be a probability between 0 and 1"
+    loss = binary_cross_entropy_with_logits(entry, entry.new_tensor(test["awnser"]))
 
     all_loss += loss.item()
     loss_per_category[test["category"]] += loss.item(); category_counts[test["category"]] += 1
@@ -70,4 +73,5 @@ tests:list[dict] = [
 ]
 
 if __name__ == "__main__":
-  print(evaluate_model(model_list[0]))
+  for m in model_list:
+    print(f"{m}::::{evaluate_model(m)}\n")
