@@ -7,6 +7,7 @@ required flags to run are in `FLAGS.txt`
 
 # specs 
 [Dataset field specification](spec/dataset.pdf)
+[Model interface specification](spec/models.pdf)
 
 # usage
 ```sh
