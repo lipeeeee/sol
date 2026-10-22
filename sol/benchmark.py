@@ -6,11 +6,8 @@ from torch import Tensor
 from torch.nn.functional import binary_cross_entropy_with_logits
 import math
 
-# create signature value after benchmarks, like elo
 # simpler/basic labels/metrics
 # also allow checkpoints evaluation
-# confidence and correctness should be awarded more while confidence and error should be punsihed more
-# Q: do we add names/categories to drafts so we can diagnose which version is failing where? probably a good idea
 
 # p_blue = sigmoid(pred)
 # awnser is the target Blue-win probability, between 0 and 1
