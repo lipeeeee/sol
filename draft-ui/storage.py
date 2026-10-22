@@ -7,12 +7,12 @@ from tempfile import NamedTemporaryFile
 from threading import Lock
 from typing import TypedDict, cast
 from uuid import uuid4
-from draft import Draft, validate_draft
+from draft import Draft, DraftJSON, serialize_draft, validate_draft
 
 DRAFTS:Path = Path(__file__).resolve().parent / "drafts"
 FAVORITES:Path = DRAFTS.with_name("favorites.json")
 DRAFT_ID:re.Pattern[str] = re.compile(r"[0-9a-f]{32}")
-SavedDraft = TypedDict("SavedDraft", {"id": str, "name": str, "saved_at": str, "draft": Draft})
+SavedDraft = TypedDict("SavedDraft", {"id": str, "name": str, "saved_at": str, "draft": DraftJSON})
 favorites_lock = Lock()
 
 def atomic_write(path:Path, data:bytes)->None:
@@ -32,7 +32,7 @@ def validate_name(value:object)->str:
 
 def save_draft(name:str, draft:Draft, directory:Path=DRAFTS)->SavedDraft:
   saved:SavedDraft = {"id": uuid4().hex, "name": validate_name(name),
-                      "saved_at": datetime.now(timezone.utc).isoformat(), "draft": draft}
+                      "saved_at": datetime.now(timezone.utc).isoformat(), "draft": serialize_draft(draft)}
   atomic_write(directory / f"{saved['id']}.json", (json.dumps(saved, indent=2) + "\n").encode())
   return saved
 

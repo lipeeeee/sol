@@ -1,5 +1,6 @@
 from __future__ import annotations
 from collections import defaultdict
+from enum import IntEnum
 from typing import Any, ClassVar, Generic, TypeVar, Callable
 import os, sys
 
@@ -11,6 +12,9 @@ except ImportError:
   sys.exit(-1)
 
 T = TypeVar("T")
+
+class TeamEnum(IntEnum):
+  BLUE = 0; RED = 1
 
 # **** Context/Env vars ****
 def getenv(key:str, default:Any): return type(default)(os.getenv(key, default))

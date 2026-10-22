@@ -3,28 +3,42 @@ import unittest
 from copy import deepcopy
 from unittest.mock import Mock, patch
 import bridge
-from draft import Draft, validate_draft
+from draft import DraftJSON, validate_draft, serialize_draft
+from sol.utils import TeamEnum as TE
 
 class DraftTests(unittest.TestCase):
   def setUp(self:DraftTests)->None:
     self.ids:frozenset[int] = frozenset({1, 2, 3, 157})
-    self.draft:Draft = {
+    self.draft:DraftJSON = {
       "blue": {"picks": [None] * 5, "bans": [None] * 5},
       "red": {"picks": [None] * 5, "bans": [None] * 5},
     }
 
   def test_preserves_empty_and_arbitrary_partial_slots(self:DraftTests)->None:
-    self.assertIs(validate_draft(self.draft, self.ids), self.draft)
+    self.assertEqual(serialize_draft(validate_draft(self.draft, self.ids)), self.draft)
     self.draft["blue"]["picks"][3] = 1
     self.draft["red"]["picks"][4] = 157
     self.draft["red"]["bans"][2] = 2
-    before:Draft = deepcopy(self.draft)
-    self.assertIs(validate_draft(self.draft, self.ids), self.draft)
+    before:DraftJSON = deepcopy(self.draft)
+    self.assertEqual(serialize_draft(validate_draft(self.draft, self.ids)), self.draft)
     self.assertEqual(self.draft, before)
+
+  def test_enum_teams_round_trip_without_mutating_json(self:DraftTests)->None:
+    before = deepcopy(self.draft)
+    parsed = validate_draft(self.draft, self.ids)
+    self.assertEqual(list(parsed["teams"]), [TE.BLUE, TE.RED])
+    self.assertTrue(all(isinstance(side, TE) for side in parsed["teams"]))
+    self.assertEqual(serialize_draft(parsed), before)
+    self.assertEqual(self.draft, before)
+
+  def test_inference_preserves_blue_then_red_order(self:DraftTests)->None:
+    from sol.inference import prepare_tensors
+    inputs = [{"champion": {TE.RED: [6, 7, 8, 9, 10], TE.BLUE: [1, 2, 3, 4, 5]}}]
+    self.assertEqual(prepare_tensors(inputs, "cpu")["champion"].tolist(), [list(range(1, 11))])
 
   def test_rejects_bad_shapes(self:DraftTests)->None:
     cases:list[object] = [None, [], {}, {**self.draft, "version": 1}]
-    short:Draft = deepcopy(self.draft); short["blue"]["bans"].pop(); cases.append(short)
+    short:DraftJSON = deepcopy(self.draft); short["blue"]["bans"].pop(); cases.append(short)
     cases.append({**self.draft, "red": {**self.draft["red"], "picks": {}}})
     cases.append({**self.draft, "red": {**self.draft["red"], "roles": []}})
     for value in cases:
@@ -47,7 +61,7 @@ class DraftTests(unittest.TestCase):
   def test_validates_draft_context(self:DraftTests)->None:
     for first_pick in (0, 1):
       value = {**self.draft, "firstPick": first_pick, "patch": "16.18"}
-      self.assertIs(validate_draft(value, self.ids), value)
+      self.assertEqual(serialize_draft(validate_draft(value, self.ids)), value)
     for first_pick in (True, "1", None, -1, 2):
       with self.subTest(firstPick=first_pick), self.assertRaises(ValueError):
         validate_draft({**self.draft, "firstPick": first_pick}, self.ids)
@@ -72,14 +86,14 @@ class DraftTests(unittest.TestCase):
     model = object(); output = Mock(); output.item.return_value = -.35
     with patch("sol.inference.load_model", return_value=model) as load, \
          patch("sol.inference.predict", return_value={"win_logits": output, "auxiliary": object()}) as predict:
-      self.assertEqual(bridge.evaluator(1, self.draft), -.35)
+      self.assertEqual(bridge.evaluator(1, validate_draft(self.draft, frozenset(range(1, 158)))), -.35)
     load.assert_called_once_with(1)
-    predict.assert_called_once_with(model, [{"champion": {"blue": [1, 2, 3, 4, 5], "red": [6, 7, 8, 9, 10]},
-      "ban": {"blue": [None] * 5, "red": [157, None, None, None, None]}, "firstPick": 0, "patch": "16.18"}])
+    predict.assert_called_once_with(model, [{"champion": {TE.BLUE: [1, 2, 3, 4, 5], TE.RED: [6, 7, 8, 9, 10]},
+      "ban": {TE.BLUE: [None] * 5, TE.RED: [157, None, None, None, None]}, "firstPick": 0, "patch": "16.18"}])
 
   def test_legacy_drafts_default_to_blue_first_and_an_unknown_patch(self:DraftTests)->None:
     output = Mock(); output.item.return_value = 0.0
     with patch("sol.inference.load_model"), patch("sol.inference.predict", return_value={"win_logits": output}) as predict:
-      bridge.evaluator(1, self.draft)
+      bridge.evaluator(1, validate_draft(self.draft, frozenset(range(1, 158))))
     inputs = predict.call_args.args[1][0]
     self.assertEqual(inputs["firstPick"], 1); self.assertIsNone(inputs["patch"])

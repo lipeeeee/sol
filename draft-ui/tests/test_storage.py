@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
-from draft import Draft
+from draft import DraftJSON, validate_draft
 import storage
 
 class StorageTests(unittest.TestCase):
@@ -13,7 +13,7 @@ class StorageTests(unittest.TestCase):
     self.temporary = TemporaryDirectory(); self.directory = Path(self.temporary.name) / "drafts"
     self.favorites_path = Path(self.temporary.name) / "favorites.json"
     self.ids:frozenset[int] = frozenset({1, 2, 157})
-    self.draft:Draft = {
+    self.draft:DraftJSON = {
       "blue": {"picks": [None] * 5, "bans": [None] * 5},
       "red": {"picks": [None] * 5, "bans": [None] * 5},
     }
@@ -23,9 +23,9 @@ class StorageTests(unittest.TestCase):
 
   def test_snapshots_round_trip_on_disk_without_overwriting_the_same_name(self:StorageTests)->None:
     self.assertEqual(storage.list_drafts(self.ids, self.directory), [])
-    first:storage.SavedDraft = storage.save_draft("  First draft  ", self.draft, self.directory)
+    first:storage.SavedDraft = storage.save_draft("  First draft  ", validate_draft(self.draft, self.ids), self.directory)
     self.draft["blue"]["picks"][3] = 2
-    second:storage.SavedDraft = storage.save_draft("First draft", self.draft, self.directory)
+    second:storage.SavedDraft = storage.save_draft("First draft", validate_draft(self.draft, self.ids), self.directory)
     restored:storage.SavedDraft = storage.load_draft(first["id"], self.ids, self.directory)
     self.assertEqual(restored["name"], "First draft"); self.assertNotIn("sol_version", restored)
     self.assertEqual(restored["draft"]["blue"]["picks"], [None, None, None, 1, None])
@@ -34,8 +34,8 @@ class StorageTests(unittest.TestCase):
     self.assertEqual([saved["id"] for saved in storage.list_drafts(self.ids, self.directory)], [second["id"], first["id"]])
 
   def test_deletion_only_removes_the_selected_snapshot(self:StorageTests)->None:
-    first:storage.SavedDraft = storage.save_draft("First", self.draft, self.directory)
-    second:storage.SavedDraft = storage.save_draft("Second", self.draft, self.directory)
+    first:storage.SavedDraft = storage.save_draft("First", validate_draft(self.draft, self.ids), self.directory)
+    second:storage.SavedDraft = storage.save_draft("Second", validate_draft(self.draft, self.ids), self.directory)
     storage.delete_draft(first["id"], self.directory)
     with self.assertRaises(FileNotFoundError): storage.load_draft(first["id"], self.ids, self.directory)
     self.assertEqual(storage.load_draft(second["id"], self.ids, self.directory), second)
@@ -48,11 +48,11 @@ class StorageTests(unittest.TestCase):
         storage.load_draft(draft_id, self.ids, self.directory)
       with self.subTest(draft_id=draft_id), self.assertRaises(ValueError): storage.delete_draft(draft_id, self.directory)
     self.assertEqual(outside.read_text(), "keep")
-    saved:storage.SavedDraft = storage.save_draft("../outside", self.draft, self.directory)
+    saved:storage.SavedDraft = storage.save_draft("../outside", validate_draft(self.draft, self.ids), self.directory)
     self.assertTrue((self.directory / f"{saved['id']}.json").is_file()); self.assertEqual(outside.read_text(), "keep")
 
   def test_invalid_files_do_not_hide_or_remove_valid_snapshots(self:StorageTests)->None:
-    saved:storage.SavedDraft = storage.save_draft("Valid", self.draft, self.directory)
+    saved:storage.SavedDraft = storage.save_draft("Valid", validate_draft(self.draft, self.ids), self.directory)
     broken:Path = self.directory / f"{'0' * 32}.json"; broken.write_bytes(b"{")
     (self.directory / "unrelated.json").write_bytes(b"{")
     with self.assertLogs(level="WARNING"): self.assertEqual(storage.list_drafts(self.ids, self.directory), [saved])
@@ -62,7 +62,7 @@ class StorageTests(unittest.TestCase):
       with self.subTest(field=field), self.assertRaises(ValueError): storage.load_draft(broken.stem, self.ids, self.directory)
 
   def test_older_versioned_files_load_without_exposing_the_version(self:StorageTests)->None:
-    saved:storage.SavedDraft = storage.save_draft("Older", self.draft, self.directory)
+    saved:storage.SavedDraft = storage.save_draft("Older", validate_draft(self.draft, self.ids), self.directory)
     path:Path = self.directory / f"{saved['id']}.json"
     path.write_text(json.dumps({**saved, "sol_version": 2}))
     self.assertEqual(storage.load_draft(saved["id"], self.ids, self.directory), saved)
@@ -71,16 +71,16 @@ class StorageTests(unittest.TestCase):
     with self.assertRaises(ValueError): storage.load_draft(saved["id"], self.ids, self.directory)
 
   def test_failed_writes_leave_existing_saves_and_no_temporary_files(self:StorageTests)->None:
-    saved:storage.SavedDraft = storage.save_draft("Existing", self.draft, self.directory)
+    saved:storage.SavedDraft = storage.save_draft("Existing", validate_draft(self.draft, self.ids), self.directory)
     with patch.object(Path, "replace", side_effect=OSError("disk full")), self.assertRaises(OSError):
-      storage.save_draft("New", self.draft, self.directory)
+      storage.save_draft("New", validate_draft(self.draft, self.ids), self.directory)
     self.assertEqual(storage.list_drafts(self.ids, self.directory), [saved])
     self.assertEqual(len(list(self.directory.iterdir())), 1)
 
   def test_concurrent_saves_keep_every_snapshot(self:StorageTests)->None:
     with ThreadPoolExecutor(max_workers=4) as workers:
       saved:list[storage.SavedDraft] = list(workers.map(
-        lambda index: storage.save_draft(f"Draft {index}", self.draft, self.directory), range(8)))
+        lambda index: storage.save_draft(f"Draft {index}", validate_draft(self.draft, self.ids), self.directory), range(8)))
     self.assertEqual({draft["id"] for draft in storage.list_drafts(self.ids, self.directory)}, {draft["id"] for draft in saved})
     self.assertEqual(len(list(self.directory.iterdir())), 8)
 

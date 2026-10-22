@@ -1,7 +1,13 @@
 from typing import NotRequired, TypedDict, cast
+from sol.utils import TeamEnum as TE
 
 Team = TypedDict("Team", {"picks": list[int|None], "bans": list[int|None]})
-Draft = TypedDict("Draft", {"blue": Team, "red": Team, "firstPick": NotRequired[int], "patch": NotRequired[str|None]})
+DraftJSON = TypedDict("DraftJSON", {"blue": Team, "red": Team, "firstPick": NotRequired[int], "patch": NotRequired[str|None]})
+Draft = TypedDict("Draft", {"teams": dict[TE, Team], "firstPick": NotRequired[int], "patch": NotRequired[str|None]})
+
+def serialize_draft(draft:Draft)->DraftJSON:
+  return cast(DraftJSON, {**{side.name.lower(): draft["teams"][side] for side in TE},
+                          **{key: draft[key] for key in ("firstPick", "patch") if key in draft}})
 
 def validate_draft(value:object, champion_ids:frozenset[int])->Draft:
   if not isinstance(value, dict) or not {"blue", "red"} <= set(value) <= {"blue", "red", "firstPick", "patch"}:
@@ -12,8 +18,8 @@ def validate_draft(value:object, champion_ids:frozenset[int])->Draft:
   if patch is not None and (not isinstance(patch, str) or not patch.strip() or len(patch) > 16):
     raise ValueError("Patch must be a nonempty string of up to 16 characters or null")
   used:set[int] = set()
-  for side in ("blue", "red"):
-    team:object = value[side]
+  for side in TE:
+    team:object = value[side.name.lower()]
     if not isinstance(team, dict) or set(team) != {"picks", "bans"}: raise ValueError("Expected picks and bans")
     picks:object = team["picks"]; bans:object = team["bans"]
     if not isinstance(picks, list) or not isinstance(bans, list): raise ValueError("Slots must be arrays")
@@ -23,4 +29,5 @@ def validate_draft(value:object, champion_ids:frozenset[int])->Draft:
       if type(champion_id) is not int or champion_id not in champion_ids or champion_id in used:
         raise ValueError("Champions must be known and unique across the draft")
       used.add(champion_id)
-  return cast(Draft, value)
+  return cast(Draft, {"teams": {side: value[side.name.lower()] for side in TE},
+                      **{key: value[key] for key in ("firstPick", "patch") if key in value}})

@@ -30,3 +30,6 @@ inference.predict(sol_version, test_batch)
 ```sh
 python3 draft-ui/run.py 1
 ```
+
+Import `TeamEnum` with `from sol.utils import TeamEnum as TE`; Python inference inputs use `TE.BLUE` and `TE.RED` as team keys.
+The draft UI converts its `"blue"`/`"red"` JSON keys to enums at the API boundary; saved drafts keep the existing JSON format.

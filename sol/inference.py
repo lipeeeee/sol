@@ -1,4 +1,5 @@
 from sol.utils import *
+from sol.utils import TeamEnum as TE
 from sol.metadata.champion_ids import CHAMPION_IDS
 from torch import Tensor
 from types import ModuleType
@@ -37,11 +38,11 @@ def prepare_tensors(inputs:list[dict], device) -> dict[str, Tensor]: # for predi
   # **** build tensors ****
   tensors:dict[str, Tensor] = dict()
   tensors["champion"] = torch.tensor([
-    [champ_id(name) for name in draft["champion"]["blue"] + draft["champion"]["red"]]
+    [champ_id(name) for name in draft["champion"][TE.BLUE] + draft["champion"][TE.RED]]
     for draft in inputs], dtype=torch.long, device=device)
   return tensors
 def predict(sol:ModuleType, x:list[dict]) -> dict[str, Tensor]: # for now only assume json/dict is viable for prediction
-  # x= [{"champion": {"blue": [], "red": []}, "ban": {"blue": [], "red": []}, "firstPick": int, "patch": str|None}, ...]
+  # x= [{"champion": {TE.BLUE: [], TE.RED: []}, "ban": {TE.BLUE: [], TE.RED: []}, "firstPick": int, "patch": str|None}, ...]
   # NOTE: should we assert device here? there is probably a device contract problem in sol
   tensors = prepare_tensors(x, device=sol.training_params["device"])
   with torch.inference_mode():
@@ -53,16 +54,16 @@ if __name__ == "__main__":
   test_batch = [
     {
       "champion": {
-        "blue": ["Aatrox", "Lee Sin", "Ahri", "Jinx", "Nautilus"],
-        "red": ["Ornn", "Viego", "Orianna", "Aphelios", "Lulu"]
+        TE.BLUE: ["Aatrox", "Lee Sin", "Ahri", "Jinx", "Nautilus"],
+        TE.RED: ["Ornn", "Viego", "Orianna", "Aphelios", "Lulu"]
       },
       "firstPick": 0,
       "patch": "16.18"
     },
     {
       "champion": {
-        "blue": ["Gwen", "Sejuani", "Azir", "Kai'Sa", "Rell"],
-        "red": ["Renekton", "Jarvan IV", "Syndra", "Ezreal", "Leona"]
+        TE.BLUE: ["Gwen", "Sejuani", "Azir", "Kai'Sa", "Rell"],
+        TE.RED: ["Renekton", "Jarvan IV", "Syndra", "Ezreal", "Leona"]
       },
       "firstPick": 1,
       "patch": "16.18"

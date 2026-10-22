@@ -1,5 +1,6 @@
 """Ultra-Slim Additive champion-role strengths, model weighs 3.5Kb"""
 from sol.utils import *
+from sol.utils import TeamEnum as TE
 from sol.metadata.champion_ids import CHAMPION_IDS
 from sol.dataset import SolDataset, split_games
 from functools import partial
@@ -44,7 +45,7 @@ if TRAINING:
   for indices in split_games(sd.data):
     datasets.append({
       "champion": torch.tensor([[CHAMPION_IDS[name] for name in sd.data["champion"][g]] for g in indices], dtype=torch.long, device=_device),
-      "result": torch.tensor([float(sd.data["team_result"][g][0]) for g in indices], dtype=dtype, device=_device)
+      "result": torch.tensor([float(sd.data["team_result"][g][TE.BLUE]) for g in indices], dtype=dtype, device=_device)
     })
   assert all(input in sd.data for input in inputs)
   del sd

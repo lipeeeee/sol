@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import TypedDict
 from sol.metadata.champion_ids import CHAMPION_IDS
 from draft import Draft
+from sol.utils import TeamEnum as TE
 
 ROOT:Path = Path(__file__).resolve().parent.parent
 Champion = TypedDict("Champion", {"id": int, "name": str, "roles": list[str]})
@@ -10,8 +11,8 @@ Evaluator = Callable[[int, Draft], float]
 
 def evaluator(version:int, draft:Draft)->float:
   from sol.inference import load_model, predict
-  inputs = {"champion": {side: draft[side]["picks"] for side in ("blue", "red")},
-            "ban": {side: draft[side]["bans"] for side in ("blue", "red")},
+  inputs = {"champion": {side: draft["teams"][side]["picks"] for side in TE},
+            "ban": {side: draft["teams"][side]["bans"] for side in TE},
             "firstPick": draft.get("firstPick", 1), "patch": draft.get("patch")}
   return predict(load_model(version), [inputs])["win_logits"].item()
 

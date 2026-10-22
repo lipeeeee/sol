@@ -15,7 +15,7 @@ from typing import TypedDict
 from unittest.mock import Mock, patch
 import assets
 import bridge
-from draft import Draft
+from draft import Draft, DraftJSON, validate_draft
 from server import Handler
 
 class BootstrapChampion(TypedDict):
@@ -40,7 +40,7 @@ class ServerTests(unittest.TestCase):
     self.server = ThreadingHTTPServer(("127.0.0.1", 0), self.handler)
     self.thread = threading.Thread(target=lambda: self.server.serve_forever(poll_interval=.01), daemon=True)
     self.thread.start()
-    self.draft:Draft = {
+    self.draft:DraftJSON = {
       "blue": {"picks": [None] * 5, "bans": [None] * 5},
       "red": {"picks": [None] * 5, "bans": [None] * 5},
     }
@@ -199,7 +199,7 @@ class ServerTests(unittest.TestCase):
     self.handler.keywords["evaluator"] = evaluate
     status, body, _ = self.post(self.draft)
     self.assertEqual(status, 200); self.assertEqual(json.loads(body), {"logit": -.64})
-    self.assertEqual(received, [(1, self.draft)])
+    self.assertEqual(received, [(1, validate_draft(self.draft, frozenset(bridge.CHAMPION_IDS.values())))])
     self.assertTrue(json.loads(self.request("GET", "/api/bootstrap")[1])["evaluation_available"])
 
   def test_partial_drafts_never_call_inference(self:ServerTests)->None:

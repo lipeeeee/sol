@@ -1,5 +1,6 @@
 # private, selected game benchmark, still have to think about design on this
 from sol.utils import *
+from sol.utils import TeamEnum as TE
 from sol import inference
 from torch import Tensor
 from torch.nn.functional import binary_cross_entropy_with_logits
@@ -21,7 +22,7 @@ import math
 model_list:list[str] = ["sol_1"]
 
 # NOTE: this probably will need to be turned into a helper class in order to make multi-head benchmarks!
-@torch.no_grad
+@torch.no_grad()
 def evaluate_model(model:str):
   m = inference.load_model(model)
   y:Tensor = inference.predict(m, tests)["win_logits"] # NOTE: should be able to evaluate multiple heads, if some model doesnt have heads return 0, 0
@@ -47,12 +48,12 @@ tests:list[dict] = [
   {
     "category": "f2b", "awnser": 1,
     "champion": {
-      "blue": ["Aatrox", "Lee Sin", "Ahri", "Jinx", "Nautilus"],
-      "red": ["Ornn", "Viego", "Orianna", "Aphelios", "Lulu"]
+      TE.BLUE: ["Aatrox", "Lee Sin", "Ahri", "Jinx", "Nautilus"],
+      TE.RED: ["Ornn", "Viego", "Orianna", "Aphelios", "Lulu"]
     },
     "ban_order": {
-      "blue": ["Thresh", "Gnar", "Sivir", "Yasuo", "Malphite"],
-      "red": ["Shen", "Nidalee", "Karthus", "Syndra", "Janna"]
+      TE.BLUE: ["Thresh", "Gnar", "Sivir", "Yasuo", "Malphite"],
+      TE.RED: ["Shen", "Nidalee", "Karthus", "Syndra", "Janna"]
     },
     "firstPick": 1,
     "patch": "16.18"
@@ -60,12 +61,12 @@ tests:list[dict] = [
   {
     "category": "f2b", "awnser": 1,
     "champion": {
-      "blue": ["Aatrox", "Lee Sin", "Ahri", "Jinx", "Bard"],
-      "red": ["Ornn", "Viego", "Orianna", "Aphelios", "Lulu"]
+      TE.BLUE: ["Aatrox", "Lee Sin", "Ahri", "Jinx", "Bard"],
+      TE.RED: ["Ornn", "Viego", "Orianna", "Aphelios", "Lulu"]
     },
     "ban_order": {
-      "blue": ["Thresh", "Gnar", "Sivir", "Yasuo", "Malphite"],
-      "red": ["Shen", "Nidalee", "Karthus", "Syndra", "Janna"]
+      TE.BLUE: ["Thresh", "Gnar", "Sivir", "Yasuo", "Malphite"],
+      TE.RED: ["Shen", "Nidalee", "Karthus", "Syndra", "Janna"]
     },
     "firstPick": 1,
     "patch": "16.18"

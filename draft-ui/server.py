@@ -13,6 +13,7 @@ import assets
 import storage
 from bridge import Champion, Evaluator
 from draft import Draft, validate_draft
+from sol.utils import TeamEnum as TE
 
 UI:Path = Path(__file__).resolve().parent
 STATIC:dict[str, tuple[str, str]] = {
@@ -135,7 +136,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(500, {"error": "Could not save this draft to disk."}); return
       self.send_json(201, saved); return
     if self.evaluator is None: self.send_json(503, {"error": f"No evaluator is connected to Sol {self.version}"}); return
-    if any(None in draft[side]["picks"] for side in ("blue", "red")):
+    if any(None in draft["teams"][side]["picks"] for side in TE):
       self.send_json(400, {"error": "Fill all five picks on each side before evaluating."}); return
     try:
       logit:float = self.evaluator(self.version, draft)

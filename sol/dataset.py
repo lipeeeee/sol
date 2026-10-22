@@ -1,5 +1,6 @@
 # iteration agnostic, lazy loaded dataset. (design is kinda pretty)
 from sol.utils import *
+from sol.utils import TeamEnum as TE
 from typing import Self
 from pathlib import Path
 from itertools import islice
@@ -56,7 +57,7 @@ class SolDataset():
 
           # NOTE: firstPick is assumed to blue if none are presented!
           for side, row in enumerate(batch[10:]):
-            self._data["firstPick"][game_id][side] = row["firstPick"] if row["firstPick"] != "" else ("1", "0")[side]
+            self._data["firstPick"][game_id][side] = row["firstPick"] if row["firstPick"] != "" else str(int(side == TE.BLUE))
             self._data["pick_order"][game_id][side] = [row[f"pick{i}"] for i in range(1, 6)]
             self._data["ban_order"][game_id][side] = [row[f"ban{i}"] for i in range(1, 6)]
             for field in team_fields:
