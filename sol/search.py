@@ -1,5 +1,4 @@
 # search engine for sol! MCTS with PUCTS selection
-# NOTE: future iterations should support banning but this wont
 # https://lczero.org/dev/lc0/search/alphazero/
 from sol.utils import *
 from sol.metadata.champion_ids import CHAMPION_IDS
@@ -27,13 +26,16 @@ class State:
     pick_bans:set[int] = set(self.picks[TE.BLUE] + self.picks[TE.RED] + self.bans[TE.BLUE] + self.bans[TE.RED])
     return list(ALL_CHAMPIONS - (pick_bans | self.disabled))
   def apply_action(self, champ:int) -> State: 
+    # NOTE: future iterations should support banning but this wont
     assert not(self.is_complete())
     picks_cp, bans_cp = self.picks.copy(), self.bans.copy()
     if self.turn == TE.BLUE: picks_cp[TE.BLUE].append(champ)
     elif self.turn == TE.RED: picks_cp[TE.RED].append(champ)
     else: raise ValueError(f"invalid turn in state: {self.turn}")
     return State(picks_cp, bans_cp, self.firstPick, self.disabled)
-  def is_complete(self) -> bool: return True
+  def is_complete(self) -> bool: 
+    return len(self.picks[TE.BLUE]) == 5 and len(self.picks[TE.RED]) == 5 and\
+           len(self.bans[TE.BLUE]) == 5 and len(self.bans[TE.RED]) == 5
   def valid_state(self) -> bool:
     if len(self.picks) != 2 or len(self.bans) != 2: return False
     if not(0 <= len(self.picks[TE.BLUE]) <= 5) or not(0 <= len(self.picks[TE.RED]) <= 5): return False
