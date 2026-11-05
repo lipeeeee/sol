@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from pathlib import Path
 from typing import TypedDict
-from sol.metadata.champion_ids import CHAMPION_IDS
+from sol.metadata.champion_id import CHAMPION_ID
 from draft import Draft
 from sol.utils import TeamEnum as TE
 
@@ -21,8 +21,8 @@ def validate_version(version:int)->None:
     raise ValueError(f"Unknown Sol version {version}: sol/config/sol_{version}.py does not exist")
 
 def champions()->list[Champion]:
-  assert all(type(value) is int and value > 0 for value in CHAMPION_IDS.values()), "Sol IDs must be positive integers"
-  assert len(set(CHAMPION_IDS.values())) == len(CHAMPION_IDS), "Sol IDs must be unique"
-  assert all(isinstance(name, str) and name for name in CHAMPION_IDS), "Champion names must be nonempty strings"
+  assert all(type(value) is int and value > 0 for value in CHAMPION_ID.values()), "Sol IDs must be positive integers"
+  assert len(set(CHAMPION_ID.values())) == len(CHAMPION_ID), "Sol IDs must be unique"
+  assert all(isinstance(name, str) and name for name in CHAMPION_ID), "Champion names must be nonempty strings"
   # TODO: translate shared champion role metadata here when its encoding exists.
-  return [{"id": value, "name": name, "roles": []} for name, value in sorted(CHAMPION_IDS.items())]
+  return [{"id": value, "name": name, "roles": []} for name, value in sorted(CHAMPION_ID.items())]

@@ -56,7 +56,7 @@ Use keyboard-accessible controls and visible focus states. Empty pick cards show
 
 **Champion identity and roles**
 
-Keep [Sol's champion IDs](../sol/metadata/champion_ids.py) authoritative. Browser state and evaluation requests use those IDs.
+Keep [Sol's champion IDs](../sol/metadata/champion_id.py) authoritative. Browser state and evaluation requests use those IDs.
 
 Each side contains five ordered nullable champion IDs in `picks` and five in `bans`. Preserve empty positions; never compact arrays or invent missing selections. Role assignments do not appear in snapshots.
 

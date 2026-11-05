@@ -71,7 +71,7 @@ class DraftTests(unittest.TestCase):
 
   def test_bridge_uses_sol_ids_and_has_no_fake_roles(self:DraftTests)->None:
     champions:list[bridge.Champion] = bridge.champions()
-    self.assertEqual({champion["name"]: champion["id"] for champion in champions}, bridge.CHAMPION_IDS)
+    self.assertEqual({champion["name"]: champion["id"] for champion in champions}, bridge.CHAMPION_ID)
     self.assertTrue(all(champion["roles"] == [] for champion in champions))
     self.assertTrue(callable(bridge.evaluator))
     bridge.validate_version(1)

@@ -179,7 +179,7 @@ class ServerTests(unittest.TestCase):
       self.assertEqual(status, 200); self.assertEqual(body, b""); self.assertGreater(int(headers["Content-Length"]), 0)
 
   def test_unexpected_paths_cannot_read_repo_or_cache(self:ServerTests)->None:
-    for path in ("/../sol/metadata/champion_ids.py", "/%2e%2e/README.md", "/bridge.py", "/.cache/champion.json",
+    for path in ("/../sol/metadata/champion_id.py", "/%2e%2e/README.md", "/bridge.py", "/.cache/champion.json",
                  "/portraits/wrong/157.png", f"/portraits/{assets.ASSET_VERSION}/999999.png",
                  "/splashes/wrong/157.jpg", f"/splashes/{assets.ASSET_VERSION}/999999.jpg",
                  f"/splashes/{assets.ASSET_VERSION}/157.png", f"/portraits/{assets.ASSET_VERSION}/157.jpg"):
@@ -199,7 +199,7 @@ class ServerTests(unittest.TestCase):
     self.handler.keywords["evaluator"] = evaluate
     status, body, _ = self.post(self.draft)
     self.assertEqual(status, 200); self.assertEqual(json.loads(body), {"logit": -.64})
-    self.assertEqual(received, [(1, validate_draft(self.draft, frozenset(bridge.CHAMPION_IDS.values())))])
+    self.assertEqual(received, [(1, validate_draft(self.draft, frozenset(bridge.CHAMPION_ID.values())))])
     self.assertTrue(json.loads(self.request("GET", "/api/bootstrap")[1])["evaluation_available"])
 
   def test_partial_drafts_never_call_inference(self:ServerTests)->None:

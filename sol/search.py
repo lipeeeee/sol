@@ -1,10 +1,10 @@
 # search engine for sol! MCTS with PUCTS selection
 # https://lczero.org/dev/lc0/search/alphazero/
 from sol.utils import *
-from sol.metadata.champion_ids import CHAMPION_IDS
+from sol.metadata.champion_id import CHAMPION_ID
 from sol.utils import TeamEnum as TE
 
-ALL_CHAMPIONS:set[int] = set(CHAMPION_IDS.values())
+ALL_CHAMPIONS:set[int] = set(CHAMPION_ID.values())
 
 # NOTE: this current State 
 class State:

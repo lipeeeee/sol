@@ -1,7 +1,7 @@
 """Ultra-Slim Additive champion-role strengths, model weighs 3.5Kb"""
 from sol.utils import *
 from sol.utils import TeamEnum as TE
-from sol.metadata.champion_ids import CHAMPION_IDS
+from sol.metadata.champion_id import CHAMPION_ID
 from sol.dataset import SolDataset, split_games
 from functools import partial
 from torch import Tensor, nn, optim
@@ -19,7 +19,7 @@ class Sol_1(nn.Module):
   def __init__(self, side_aware:bool=False):
     super().__init__()
     embedding_dim = 10 if side_aware else 5
-    self.strength_emb = nn.Embedding(max(CHAMPION_IDS.values()) + 1, embedding_dim)
+    self.strength_emb = nn.Embedding(max(CHAMPION_ID.values()) + 1, embedding_dim)
     nn.init.zeros_(self.strength_emb.weight)
     self.bias = nn.Parameter(torch.zeros(1))
 
@@ -44,7 +44,7 @@ if TRAINING:
   datasets = []
   for indices in split_games(sd.data):
     datasets.append({
-      "champion": torch.tensor([[CHAMPION_IDS[name] for name in sd.data["champion"][g]] for g in indices], dtype=torch.long, device=_device),
+      "champion": torch.tensor([[CHAMPION_ID[name] for name in sd.data["champion"][g]] for g in indices], dtype=torch.long, device=_device),
       "result": torch.tensor([float(sd.data["team_result"][g][TE.BLUE]) for g in indices], dtype=dtype, device=_device)
     })
   assert all(input in sd.data for input in inputs)

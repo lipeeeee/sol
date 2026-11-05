@@ -1,6 +1,6 @@
 from sol.utils import *
 from sol.utils import TeamEnum as TE
-from sol.metadata.champion_ids import CHAMPION_IDS
+from sol.metadata.champion_id import CHAMPION_ID
 from torch import Tensor
 from types import ModuleType
 from pathlib import Path
@@ -12,7 +12,7 @@ import sys, importlib
 
 _version_cache:WeakValueDictionary[str, ModuleType] = WeakValueDictionary()
 
-def champ_id(x:str|int) -> int: return CHAMPION_IDS[x] if isinstance(x, str) else x
+def champ_id(x:str|int) -> int: return CHAMPION_ID[x] if isinstance(x, str) else x
 def load_model(version:str|int) -> ModuleType:
   name = version if isinstance(version, str) else f"sol_{version}"
   if (sol:=_version_cache.get(name)) is not None: return sol
