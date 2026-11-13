@@ -26,7 +26,7 @@ from sol.metadata.champion_id import CHAMPION_ID
 
 CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   CHAMPION_ID["Kai'Sa"]: dict(
-    white=50, blue=75, black=0, red=0, green=75,
+    white=50, blue=50, black=0, red=0, green=75,
     initiation=0, dive=90, peel=0, disengage=0, amplification=0, frontline=0, front2back=80,
     burst_dmg=60, sustained_dmg=90, aoe_dmg=30, poke=50,
     range=60, zone_control=20,
@@ -62,7 +62,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=0, mid=40, late=100,
   ),
   CHAMPION_ID["Lee Sin"]: dict(
-    white=0, blue=0, black=0, red=100, green=0,
+    white=25, blue=0, black=0, red=100, green=0,
     initiation=70, dive=80, peel=40, disengage=50, amplification=0, frontline=50, front2back=40,
     burst_dmg=80, sustained_dmg=40, aoe_dmg=40, poke=0,
     range=40, zone_control=10,
@@ -151,8 +151,8 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     hands_requirement=20, protection_dependence=10, resource_demand=10, lead_dependence=10,
     early=70, mid=80, late=100,
   ),
-  CHAMPION_ID["Malphite"]: dict(  # tank build
-    white=0, blue=50, black=0, red=0, green=25,
+  CHAMPION_ID["Malphite"]: dict(
+    white=25, blue=50, black=0, red=0, green=25,
     initiation=100, dive=90, peel=40, disengage=0, amplification=0, frontline=90, front2back=80,
     burst_dmg=40, sustained_dmg=20, aoe_dmg=40, poke=0,
     range=40, zone_control=40,
@@ -179,7 +179,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=90, mid=70, late=50,
   ),
   CHAMPION_ID["Sivir"]: dict(
-    white=50, blue=0, black=0, red=0, green=100,
+    white=50, blue=50, black=0, red=0, green=100,
     initiation=30, dive=0, peel=10, disengage=70, amplification=60, frontline=0, front2back=100,
     burst_dmg=50, sustained_dmg=90, aoe_dmg=100, poke=50,
     range=50, zone_control=20,
@@ -187,7 +187,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     hands_requirement=30, protection_dependence=50, resource_demand=90, lead_dependence=20,
     early=40, mid=60, late=100,
   ),
-  CHAMPION_ID["Twisted Fate"]: dict(  # AP utility build
+  CHAMPION_ID["Twisted Fate"]: dict(
     white=25, blue=100, black=50, red=25, green=0,
     initiation=70, dive=20, peel=40, disengage=20, amplification=0, frontline=0, front2back=40,
     burst_dmg=60, sustained_dmg=30, aoe_dmg=40, poke=30,
@@ -232,8 +232,8 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     hands_requirement=20, protection_dependence=0, resource_demand=0, lead_dependence=10,
     early=80, mid=70, late=60,
   ),
-  CHAMPION_ID["Kog'Maw"]: dict(  # on-hit build
-    white=25, blue=50, black=0, red=0, green=100,
+  CHAMPION_ID["Kog'Maw"]: dict(
+    white=25, blue=25, black=0, red=0, green=100,
     initiation=0, dive=0, peel=10, disengage=20, amplification=0, frontline=0, front2back=100,
     burst_dmg=30, sustained_dmg=100, aoe_dmg=40, poke=40,
     range=70, zone_control=10,
