@@ -12,17 +12,21 @@
 # we should have a function that verifies all entries's correctness and completeness
 # NOTE: data is initially be sourced by an LLM and later tweaked by me
 # if you are an LLM generating: keep in mind that "hands_requirement" means how hard is it to execute the champ identity with human mistakes in mind
-# color definition:
-# **White**: Win through cooperation, protection, and organized formations.
-# **Blue**: Control the opponent’s options and choose favorable exchanges through positioning, preparation, and denial.
-# **Black**: Exploit vulnerabilities and accept sacrifices or uneven trades to secure a decisive advantage.
-# **Red**: Rely on proactive early play to build advantages and snowball them into a win.
-# **Green**: Develop resources and establish overwhelming sustained strength and presence.
+# color definitions, adapted from LS:
+# **Red**: having/relying on aggressive play to gain resources early to force early wins. runs out of fuel fast.
+#   often extremely weak if behind or even, needs to keep accelerating, snowball based. volatile, straight-forward, linear. 
+# **Blue**: Adaptive, reactive control through manipulation, deception, denial, evasion, and superior resource management.
+#   Anticipate opposing plans, prepare answers, and deplete their options until checkmate or zugzwang.
+#   Not losing is progress: inaction and nothing happening can be winning. Generally a scaling color.
+# **Green**: Build toward curved power spikes through ramp, funneling, harmony, support, and amplification.
+# **White**: Versatile, adaptability, coordination. Fits and supports other colors
+# **Black**: Specialists whose defining mechanics reshape how the game is played, accelerating primary colors colors
+#   largely disagree with LS's/MTG view on this color of "sacrifice" and "conditions"
 from sol.metadata.champion_id import CHAMPION_ID
 
 CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   CHAMPION_ID["Kai'Sa"]: dict(
-    white=0, blue=50, black=0, red=75, green=0,
+    white=50, blue=75, black=0, red=0, green=75,
     initiation=0, dive=90, peel=0, disengage=0, amplification=0, frontline=0, front2back=80,
     burst_dmg=60, sustained_dmg=90, aoe_dmg=30, poke=50,
     range=60, zone_control=20,
@@ -31,7 +35,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=30, mid=70, late=80,
   ),
   CHAMPION_ID["Evelynn"]: dict(
-    white=0, blue=0, black=100, red=50, green=0,
+    white=0, blue=100, black=100, red=25, green=0,
     initiation=40, dive=80, peel=0, disengage=0, amplification=0, frontline=0, front2back=20,
     burst_dmg=100, sustained_dmg=25, aoe_dmg=40, poke=0,
     range=30, zone_control=60,
@@ -40,7 +44,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=20, mid=90, late=70,
   ),
   CHAMPION_ID["Janna"]: dict(
-    white=100, blue=75, black=0, red=0, green=25,
+    white=50, blue=75, black=0, red=0, green=75,
     initiation=20, dive=0, peel=100, disengage=100, amplification=70, frontline=0, front2back=100,
     burst_dmg=10, sustained_dmg=0, aoe_dmg=0, poke=20,
     range=50, zone_control=40,
@@ -49,7 +53,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=60, mid=80, late=90,
   ),
   CHAMPION_ID["Kayle"]: dict(
-    white=50, blue=0, black=0, red=0, green=100,
+    white=0, blue=0, black=25, red=0, green=100,
     initiation=0, dive=10, peel=50, disengage=40, amplification=60, frontline=0, front2back=100,
     burst_dmg=60, sustained_dmg=100, aoe_dmg=80, poke=0,
     range=60, zone_control=10,
@@ -58,7 +62,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=0, mid=40, late=100,
   ),
   CHAMPION_ID["Lee Sin"]: dict(
-    white=0, blue=0, black=25, red=100, green=0,
+    white=0, blue=0, black=0, red=100, green=0,
     initiation=70, dive=80, peel=40, disengage=50, amplification=0, frontline=50, front2back=40,
     burst_dmg=80, sustained_dmg=40, aoe_dmg=40, poke=0,
     range=40, zone_control=10,
@@ -67,7 +71,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=90, mid=80, late=30,
   ),
   CHAMPION_ID["Ornn"]: dict(
-    white=100, blue=50, black=0, red=50, green=50,
+    white=50, blue=50, black=0, red=0, green=75,
     initiation=100, dive=60, peel=80, disengage=40, amplification=60, frontline=100, front2back=100,
     burst_dmg=30, sustained_dmg=30, aoe_dmg=70, poke=0,
     range=50, zone_control=80,
@@ -76,7 +80,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=40, mid=70, late=100,
   ),
   CHAMPION_ID["Ziggs"]: dict(
-    white=25, blue=100, black=0, red=0, green=0,
+    white=50, blue=100, black=0, red=0, green=25,
     initiation=10, dive=0, peel=40, disengage=50, amplification=0, frontline=0, front2back=60,
     burst_dmg=70, sustained_dmg=50, aoe_dmg=90, poke=100,
     range=100, zone_control=90,
@@ -85,7 +89,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=50, mid=80, late=80,
   ),
   CHAMPION_ID["Ashe"]: dict(
-    white=75, blue=75, black=0, red=25, green=25,
+    white=75, blue=100, black=0, red=0, green=25,
     initiation=90, dive=0, peel=40, disengage=30, amplification=0, frontline=0, front2back=100,
     burst_dmg=10, sustained_dmg=90, aoe_dmg=20, poke=30,
     range=60, zone_control=30,
@@ -94,7 +98,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=60, mid=70, late=80,
   ),
   CHAMPION_ID["Braum"]: dict(
-    white=100, blue=50, black=0, red=0, green=25,
+    white=50, blue=75, black=0, red=0, green=25,
     initiation=40, dive=20, peel=100, disengage=90, amplification=10, frontline=80, front2back=100,
     burst_dmg=0, sustained_dmg=0, aoe_dmg=10, poke=10,
     range=30, zone_control=50,
@@ -112,7 +116,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=100, mid=60, late=70,
   ),
   CHAMPION_ID["Fiora"]: dict(
-    white=0, blue=50, black=25, red=25, green=100,
+    white=0, blue=25, black=50, red=25, green=100,
     initiation=10, dive=60, peel=0, disengage=0, amplification=0, frontline=30, front2back=40,
     burst_dmg=70, sustained_dmg=90, aoe_dmg=0, poke=0,
     range=10, zone_control=0,
@@ -121,7 +125,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=50, mid=80, late=90,
   ),
   CHAMPION_ID["Ivern"]: dict(
-    white=100, blue=75, black=0, red=0, green=75,
+    white=50, blue=75, black=0, red=0, green=100,
     initiation=25, dive=0, peel=90, disengage=90, amplification=80, frontline=40, front2back=90,
     burst_dmg=0, sustained_dmg=20, aoe_dmg=10, poke=10,
     range=60, zone_control=60,
@@ -130,7 +134,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=50, mid=80, late=90,
   ),
   CHAMPION_ID["Jax"]: dict(
-    white=0, blue=50, black=0, red=0, green=100,
+    white=25, blue=25, black=0, red=0, green=100,
     initiation=30, dive=80, peel=30, disengage=10, amplification=0, frontline=60, front2back=70,
     burst_dmg=40, sustained_dmg=90, aoe_dmg=10, poke=0,
     range=20, zone_control=20,
@@ -139,7 +143,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=40, mid=75, late=90,
   ),
   CHAMPION_ID["Lulu"]: dict(
-    white=100, blue=75, black=0, red=0, green=75,
+    white=25, blue=75, black=0, red=0, green=100,
     initiation=20, dive=0, peel=100, disengage=80, amplification=100, frontline=0, front2back=100,
     burst_dmg=10, sustained_dmg=0, aoe_dmg=0, poke=20,
     range=50, zone_control=10,
@@ -148,7 +152,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=70, mid=80, late=100,
   ),
   CHAMPION_ID["Malphite"]: dict(  # tank build
-    white=75, blue=50, black=50, red=0, green=0,
+    white=0, blue=50, black=0, red=0, green=25,
     initiation=100, dive=90, peel=40, disengage=0, amplification=0, frontline=90, front2back=80,
     burst_dmg=40, sustained_dmg=20, aoe_dmg=40, poke=0,
     range=40, zone_control=40,
@@ -166,7 +170,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=60, mid=70, late=80,
   ),
   CHAMPION_ID["Renekton"]: dict(
-    white=25, blue=0, black=25, red=100, green=0,
+    white=25, blue=0, black=0, red=100, green=0,
     initiation=50, dive=70, peel=40, disengage=10, amplification=0, frontline=70, front2back=60,
     burst_dmg=80, sustained_dmg=40, aoe_dmg=60, poke=0,
     range=20, zone_control=10,
@@ -175,7 +179,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=90, mid=70, late=50,
   ),
   CHAMPION_ID["Sivir"]: dict(
-    white=100, blue=25, black=0, red=0, green=75,
+    white=50, blue=0, black=0, red=0, green=100,
     initiation=30, dive=0, peel=10, disengage=70, amplification=60, frontline=0, front2back=100,
     burst_dmg=50, sustained_dmg=90, aoe_dmg=100, poke=50,
     range=50, zone_control=20,
@@ -193,7 +197,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=50, mid=80, late=50,
   ),
   CHAMPION_ID["Ahri"]: dict(
-    white=25, blue=25, black=50, red=50, green=0,
+    white=25, blue=50, black=0, red=50, green=0,
     initiation=70, dive=70, peel=30, disengage=40, amplification=0, frontline=0, front2back=60,
     burst_dmg=70, sustained_dmg=40, aoe_dmg=30, poke=30,
     range=60, zone_control=50,
@@ -202,7 +206,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=60, mid=80, late=60,
   ),
   CHAMPION_ID["Vi"]: dict(
-    white=25, blue=0, black=75, red=100, green=0,
+    white=0, blue=0, black=0, red=100, green=0,
     initiation=100, dive=100, peel=40, disengage=0, amplification=0, frontline=50, front2back=40,
     burst_dmg=70, sustained_dmg=40, aoe_dmg=30, poke=0,
     range=40, zone_control=0,
@@ -220,7 +224,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=30, mid=90, late=90,
   ),
   CHAMPION_ID["Nautilus"]: dict(
-    white=75, blue=25, black=50, red=50, green=0,
+    white=25, blue=25, black=0, red=75, green=0,
     initiation=100, dive=70, peel=80, disengage=50, amplification=0, frontline=70, front2back=80,
     burst_dmg=0, sustained_dmg=0, aoe_dmg=10, poke=0,
     range=40, zone_control=40,
@@ -229,7 +233,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=80, mid=70, late=60,
   ),
   CHAMPION_ID["Kog'Maw"]: dict(  # on-hit build
-    white=100, blue=50, black=0, red=0, green=100,
+    white=25, blue=50, black=0, red=0, green=100,
     initiation=0, dive=0, peel=10, disengage=20, amplification=0, frontline=0, front2back=100,
     burst_dmg=30, sustained_dmg=100, aoe_dmg=40, poke=40,
     range=70, zone_control=10,
