@@ -152,7 +152,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=70, mid=80, late=100,
   ),
   CHAMPION_ID["Malphite"]: dict(
-    white=25, blue=50, black=0, red=0, green=25,
+    white=25, blue=25, black=0, red=0, green=25,
     initiation=100, dive=100, peel=40, disengage=0, amplification=0, frontline=90, front2back=90,
     burst_dmg=40, sustained_dmg=20, aoe_dmg=40, poke=0,
     range=40, zone_control=40,
