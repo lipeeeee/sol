@@ -17,10 +17,9 @@
 #   often extremely weak if behind or even, needs to keep accelerating, snowball based. volatile, straight-forward, linear. 
 # **Blue**: Adaptive, reactive control through manipulation, deception, denial, evasion, and superior resource management.
 #   Anticipate opposing plans, prepare answers, and deplete their options until checkmate or zugzwang.
-#   Not losing is progress: inaction and nothing happening can be winning. Generally a scaling color.
-# **Green**: Build toward curved power spikes through ramp, funneling, harmony, support, and amplification.
-# **White**: Versatile, adaptability, coordination. Fits and supports other colors
-# **Black**: Specialists whose defining mechanics reshape how the game is played, accelerating primary colors colors
+# **Green**: turns levels, gold and items into outsized power spikes, either by scaling directly or by amplifying an ally
+# **White**: versatile, adaptability, coordination. Protection and selflessness
+# **Black**: specialists whose defining mechanics reshape how the game is played.
 #   largely disagree with LS's/MTG view on this color of "sacrifice" and "conditions"
 from sol.metadata.champion_id import CHAMPION_ID
 
@@ -40,11 +39,11 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     burst_dmg=100, sustained_dmg=25, aoe_dmg=40, poke=0,
     range=30, zone_control=60,
     waveclear=0, side_pressure=0, map_reach=70, # map_reach is inflated because of cammouflage/information
-    hands_requirement=70, protection_dependence=0, resource_demand=80, lead_dependence=80,
+    hands_requirement=100, protection_dependence=0, resource_demand=80, lead_dependence=80,
     early=20, mid=90, late=70,
   ),
   CHAMPION_ID["Janna"]: dict(
-    white=50, blue=75, black=0, red=0, green=75,
+    white=50, blue=100, black=0, red=0, green=75,
     initiation=10, dive=0, peel=100, disengage=100, amplification=70, frontline=0, front2back=100,
     burst_dmg=10, sustained_dmg=0, aoe_dmg=0, poke=20,
     range=50, zone_control=40,
@@ -85,7 +84,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     burst_dmg=70, sustained_dmg=50, aoe_dmg=90, poke=100,
     range=100, zone_control=90,
     waveclear=100, side_pressure=40, map_reach=50,
-    hands_requirement=30, protection_dependence=30, resource_demand=60, lead_dependence=30,
+    hands_requirement=20, protection_dependence=30, resource_demand=60, lead_dependence=30,
     early=50, mid=80, late=80,
   ),
   CHAMPION_ID["Ashe"]: dict(
@@ -94,7 +93,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     burst_dmg=10, sustained_dmg=90, aoe_dmg=20, poke=20,
     range=60, zone_control=30,
     waveclear=30, side_pressure=0, map_reach=90,
-    hands_requirement=20, protection_dependence=90, resource_demand=70, lead_dependence=20,
+    hands_requirement=30, protection_dependence=90, resource_demand=70, lead_dependence=20,
     early=60, mid=70, late=80,
   ),
   CHAMPION_ID["Braum"]: dict(
@@ -143,7 +142,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=40, mid=75, late=90,
   ),
   CHAMPION_ID["Lulu"]: dict(
-    white=25, blue=75, black=0, red=0, green=100,
+    white=50, blue=75, black=0, red=0, green=100,
     initiation=20, dive=0, peel=100, disengage=80, amplification=100, frontline=0, front2back=100,
     burst_dmg=10, sustained_dmg=0, aoe_dmg=0, poke=20,
     range=40, zone_control=0,
@@ -152,7 +151,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=70, mid=80, late=100,
   ),
   CHAMPION_ID["Malphite"]: dict(
-    white=25, blue=25, black=0, red=0, green=25,
+    white=50, blue=25, black=0, red=0, green=25,
     initiation=100, dive=100, peel=40, disengage=0, amplification=0, frontline=90, front2back=90,
     burst_dmg=40, sustained_dmg=20, aoe_dmg=40, poke=0,
     range=40, zone_control=40,
@@ -193,7 +192,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     burst_dmg=60, sustained_dmg=30, aoe_dmg=40, poke=30,
     range=50, zone_control=10,
     waveclear=50, side_pressure=50, map_reach=100,
-    hands_requirement=20, protection_dependence=10, resource_demand=40, lead_dependence=20,
+    hands_requirement=30, protection_dependence=10, resource_demand=40, lead_dependence=20,
     early=50, mid=80, late=50,
   ),
   CHAMPION_ID["Ahri"]: dict(
@@ -206,12 +205,12 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=60, mid=80, late=60,
   ),
   CHAMPION_ID["Vi"]: dict(
-    white=25, blue=0, black=0, red=100, green=0,
+    white=50, blue=0, black=0, red=100, green=0,
     initiation=100, dive=100, peel=40, disengage=0, amplification=0, frontline=50, front2back=70,
     burst_dmg=70, sustained_dmg=40, aoe_dmg=30, poke=0,
     range=40, zone_control=0,
     waveclear=30, side_pressure=0, map_reach=20,
-    hands_requirement=30, protection_dependence=20, resource_demand=30, lead_dependence=50,
+    hands_requirement=40, protection_dependence=20, resource_demand=30, lead_dependence=50,
     early=70, mid=80, late=50,
   ),
   CHAMPION_ID["Anivia"]: dict(
@@ -220,7 +219,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     burst_dmg=60, sustained_dmg=80, aoe_dmg=100, poke=30,
     range=50, zone_control=100,
     waveclear=100, side_pressure=10, map_reach=0,
-    hands_requirement=80, protection_dependence=40, resource_demand=80, lead_dependence=20,
+    hands_requirement=70, protection_dependence=40, resource_demand=80, lead_dependence=20,
     early=30, mid=90, late=90,
   ),
   CHAMPION_ID["Nautilus"]: dict(
@@ -238,7 +237,97 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     burst_dmg=30, sustained_dmg=100, aoe_dmg=40, poke=40,
     range=70, zone_control=10,
     waveclear=60, side_pressure=0, map_reach=10,
-    hands_requirement=60, protection_dependence=100, resource_demand=100, lead_dependence=20,
+    hands_requirement=20, protection_dependence=100, resource_demand=100, lead_dependence=20,
     early=30, mid=80, late=100,
+  ),
+  CHAMPION_ID["Karthus"]: dict( # ok
+    white=0, blue=50, black=100, red=0, green=75,
+    initiation=0, dive=30, peel=10, disengage=10, amplification=20, frontline=40, front2back=90,
+    burst_dmg=70, sustained_dmg=90, aoe_dmg=100, poke=40,
+    range=70, zone_control=90,
+    waveclear=90, side_pressure=0, map_reach=100,
+    hands_requirement=100, protection_dependence=30, resource_demand=90, lead_dependence=30,
+    early=40, mid=80, late=90,
+  ),
+  CHAMPION_ID["Kindred"]: dict( # ok
+    white=50, blue=25, black=100, red=50, green=50,
+    initiation=20, dive=30, peel=70, disengage=30, amplification=0, frontline=0, front2back=90,
+    burst_dmg=60, sustained_dmg=90, aoe_dmg=20, poke=10,
+    range=60, zone_control=40,
+    waveclear=40, side_pressure=10, map_reach=30,
+    hands_requirement=80, protection_dependence=40, resource_demand=90, lead_dependence=60,
+    early=60, mid=80, late=70,
+  ),
+  CHAMPION_ID["Kassadin"]: dict( # ok
+    white=0, blue=0, black=75, red=0, green=100,
+    initiation=20, dive=100, peel=0, disengage=20, amplification=0, frontline=20, front2back=30,
+    burst_dmg=90, sustained_dmg=70, aoe_dmg=60, poke=0,
+    range=40, zone_control=20,
+    waveclear=70, side_pressure=70, map_reach=50,
+    hands_requirement=50, protection_dependence=0, resource_demand=100, lead_dependence=20,
+    early=10, mid=50, late=100,
+  ),
+  CHAMPION_ID["Gragas"]: dict( # ok
+    white=100, blue=75, black=0, red=0, green=25,
+    initiation=90, dive=60, peel=90, disengage=90, amplification=0, frontline=80, front2back=90,
+    burst_dmg=60, sustained_dmg=40, aoe_dmg=80, poke=40,
+    range=40, zone_control=70,
+    waveclear=70, side_pressure=20, map_reach=20,
+    hands_requirement=20, protection_dependence=0, resource_demand=30, lead_dependence=10,
+    early=50, mid=70, late=70,
+  ),
+  CHAMPION_ID["Poppy"]: dict( # ok
+    white=75, blue=100, black=0, red=25, green=25,
+    initiation=60, dive=40, peel=100, disengage=90, amplification=0, frontline=90, front2back=90,
+    burst_dmg=40, sustained_dmg=30, aoe_dmg=50, poke=0,
+    range=20, zone_control=60,
+    waveclear=30, side_pressure=20, map_reach=20,
+    hands_requirement=10, protection_dependence=0, resource_demand=20, lead_dependence=10,
+    early=60, mid=80, late=70,
+  ),
+  CHAMPION_ID["Jarvan IV"]: dict( # ok
+    white=75, blue=25, black=0, red=75, green=25,
+    initiation=100, dive=100, peel=50, disengage=30, amplification=20, frontline=70, front2back=60,
+    burst_dmg=60, sustained_dmg=30, aoe_dmg=60, poke=0,
+    range=40, zone_control=70,
+    waveclear=10, side_pressure=0, map_reach=40,
+    hands_requirement=30, protection_dependence=10, resource_demand=30, lead_dependence=50,
+    early=90, mid=80, late=60,
+  ),
+  CHAMPION_ID["Nocturne"]: dict( # ok
+    white=50, blue=75, black=50, red=50, green=0,
+    initiation=90, dive=100, peel=0, disengage=0, amplification=0, frontline=30, front2back=20,
+    burst_dmg=80, sustained_dmg=60, aoe_dmg=30, poke=10,
+    range=30, zone_control=20,
+    waveclear=23, side_pressure=30, map_reach=90,
+    hands_requirement=30, protection_dependence=0, resource_demand=60, lead_dependence=60,
+    early=50, mid=90, late=60,
+  ),
+  CHAMPION_ID["Jayce"]: dict( # ok
+    white=50, blue=50, black=0, red=50, green=50,
+    initiation=10, dive=30, peel=20, disengage=0, amplification=20, frontline=10, front2back=70,
+    burst_dmg=90, sustained_dmg=50, aoe_dmg=70, poke=100,
+    range=90, zone_control=70,
+    waveclear=60, side_pressure=60, map_reach=30,
+    hands_requirement=100, protection_dependence=30, resource_demand=80, lead_dependence=60,
+    early=80, mid=90, late=70,
+  ),
+  CHAMPION_ID["Xayah"]: dict( # ok
+    white=50, blue=75, black=0, red=0, green=75,
+    initiation=0, dive=0, peel=60, disengage=90, amplification=0, frontline=0, front2back=100,
+    burst_dmg=70, sustained_dmg=100, aoe_dmg=70, poke=0,
+    range=40, zone_control=40,
+    waveclear=90, side_pressure=0, map_reach=0,
+    hands_requirement=40, protection_dependence=40, resource_demand=90, lead_dependence=20,
+    early=50, mid=80, late=90,
+  ),
+  CHAMPION_ID["Karma"]: dict( # ok
+    white=75, blue=50, black=0, red=25, green=50,
+    initiation=30, dive=0, peel=80, disengage=60, amplification=60, frontline=0, front2back=90,
+    burst_dmg=40, sustained_dmg=20, aoe_dmg=50, poke=80,
+    range=60, zone_control=40,
+    waveclear=40, side_pressure=0, map_reach=40,
+    hands_requirement=30, protection_dependence=0, resource_demand=30, lead_dependence=20,
+    early=80, mid=80, late=70,
   ),
 }
