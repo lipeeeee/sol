@@ -53,7 +53,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=60, mid=80, late=90,
   ),
   CHAMPION_ID["Kayle"]: dict(
-    white=0, blue=0, black=25, red=0, green=100,
+    white=50, blue=0, black=25, red=0, green=100,
     initiation=0, dive=10, peel=50, disengage=40, amplification=60, frontline=0, front2back=100,
     burst_dmg=60, sustained_dmg=100, aoe_dmg=80, poke=0,
     range=50, zone_control=10,
@@ -125,7 +125,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=50, mid=80, late=90,
   ),
   CHAMPION_ID["Ivern"]: dict(
-    white=50, blue=50, black=0, red=0, green=100,
+    white=75, blue=50, black=0, red=0, green=100,
     initiation=20, dive=0, peel=90, disengage=90, amplification=80, frontline=40, front2back=100,
     burst_dmg=0, sustained_dmg=10, aoe_dmg=10, poke=10,
     range=45, zone_control=60,
@@ -143,7 +143,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=40, mid=75, late=90,
   ),
   CHAMPION_ID["Lulu"]: dict(
-    white=50, blue=75, black=0, red=0, green=100,
+    white=75, blue=75, black=0, red=0, green=100,
     initiation=20, dive=0, peel=100, disengage=80, amplification=100, frontline=0, front2back=100,
     burst_dmg=10, sustained_dmg=0, aoe_dmg=0, poke=20,
     range=40, zone_control=0,
@@ -161,7 +161,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=30, mid=80, late=70,
   ),
   CHAMPION_ID["Orianna"]: dict(
-    white=75, blue=100, black=0, red=0, green=25,
+    white=50, blue=100, black=0, red=0, green=25,
     initiation=60, dive=25, peel=60, disengage=50, amplification=30, frontline=0, front2back=90,
     burst_dmg=80, sustained_dmg=50, aoe_dmg=100, poke=70,
     range=70, zone_control=100,
@@ -310,7 +310,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     burst_dmg=90, sustained_dmg=50, aoe_dmg=70, poke=100,
     range=90, zone_control=70,
     waveclear=60, side_pressure=60, map_reach=30,
-    hands_requirement=100, protection_dependence=30, resource_demand=80, lead_dependence=60,
+    hands_requirement=100, protection_dependence=40, resource_demand=80, lead_dependence=60,
     early=80, mid=90, late=70,
   ),
   CHAMPION_ID["Xayah"]: dict(
