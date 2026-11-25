@@ -8,6 +8,8 @@
 # hands_requirement, protection_dependence, resource_demand, lead_dependence
 # early, mid, late
 #]
+# disengage measures how reliably a champion can shut down a fight once the enemy commits.
+# Breaking contact, cutting off follow-up, or making pursuit too costly can give allies time to reset.
 # should we have post-computed stuff? probably its fine. like flex=len(roles)>1
 # we should have a function that verifies all entries's correctness and completeness
 # NOTE: data is initially be sourced by an LLM and later tweaked by me
@@ -23,6 +25,7 @@
 #   largely disagree with LS's/MTG view on this color of "sacrifice" and "conditions"
 from sol.metadata.champion_id import CHAMPION_ID
 
+# Q: should protection_dependence only signify the need/synergy for enchanters or should it also mean the need for team play
 # TODO role override, e.g: 'top'={'white'=100}
 CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   CHAMPION_ID["Kai'Sa"]: dict(
@@ -54,7 +57,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Kayle"]: dict(
     white=50, blue=0, black=25, red=0, green=100,
-    initiation=0, dive=10, peel=50, disengage=40, amplification=60, frontline=0, front2back=100,
+    initiation=0, dive=10, peel=50, disengage=55, amplification=60, frontline=0, front2back=100,
     burst_dmg=60, sustained_dmg=100, aoe_dmg=80, poke=0,
     range=50, zone_control=10,
     waveclear=80, side_pressure=60, map_reach=10,
@@ -72,7 +75,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Ornn"]: dict(
     white=75, blue=50, black=0, red=0, green=75,
-    initiation=100, dive=60, peel=80, disengage=40, amplification=60, frontline=100, front2back=100,
+    initiation=100, dive=60, peel=80, disengage=65, amplification=60, frontline=100, front2back=100,
     burst_dmg=30, sustained_dmg=30, aoe_dmg=70, poke=0,
     range=50, zone_control=80,
     waveclear=50, side_pressure=20, map_reach=40,
@@ -81,7 +84,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Ziggs"]: dict(
     white=50, blue=100, black=0, red=0, green=25,
-    initiation=10, dive=0, peel=40, disengage=50, amplification=0, frontline=0, front2back=60,
+    initiation=10, dive=0, peel=40, disengage=60, amplification=0, frontline=0, front2back=60,
     burst_dmg=70, sustained_dmg=50, aoe_dmg=90, poke=100,
     range=100, zone_control=90,
     waveclear=100, side_pressure=40, map_reach=50,
@@ -90,8 +93,8 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Ashe"]: dict(
     white=75, blue=100, black=0, red=0, green=25,
-    initiation=90, dive=0, peel=40, disengage=20, amplification=0, frontline=0, front2back=100,
-    burst_dmg=10, sustained_dmg=90, aoe_dmg=20, poke=20,
+    initiation=90, dive=0, peel=40, disengage=50, amplification=0, frontline=0, front2back=100,
+    burst_dmg=10, sustained_dmg=90, aoe_dmg=20, poke=45,
     range=60, zone_control=30,
     waveclear=30, side_pressure=0, map_reach=90,
     hands_requirement=30, protection_dependence=90, resource_demand=70, lead_dependence=20,
@@ -126,7 +129,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Ivern"]: dict(
     white=75, blue=50, black=0, red=0, green=100,
-    initiation=20, dive=0, peel=90, disengage=90, amplification=80, frontline=40, front2back=100,
+    initiation=20, dive=0, peel=90, disengage=70, amplification=80, frontline=40, front2back=100,
     burst_dmg=0, sustained_dmg=10, aoe_dmg=10, poke=10,
     range=45, zone_control=60,
     waveclear=0, side_pressure=0, map_reach=10,
@@ -135,7 +138,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Jax"]: dict(
     white=25, blue=25, black=0, red=0, green=100,
-    initiation=30, dive=80, peel=30, disengage=10, amplification=0, frontline=60, front2back=70,
+    initiation=30, dive=80, peel=30, disengage=35, amplification=0, frontline=60, front2back=70,
     burst_dmg=40, sustained_dmg=90, aoe_dmg=10, poke=0,
     range=20, zone_control=20,
     waveclear=30, side_pressure=100, map_reach=20,
@@ -153,7 +156,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Malphite"]: dict(
     white=50, blue=25, black=0, red=0, green=25,
-    initiation=100, dive=100, peel=40, disengage=0, amplification=0, frontline=90, front2back=90,
+    initiation=100, dive=100, peel=40, disengage=75, amplification=0, frontline=90, front2back=90,
     burst_dmg=40, sustained_dmg=20, aoe_dmg=40, poke=0,
     range=40, zone_control=40,
     waveclear=50, side_pressure=0, map_reach=0,
@@ -162,7 +165,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Orianna"]: dict(
     white=50, blue=100, black=0, red=0, green=25,
-    initiation=60, dive=25, peel=60, disengage=50, amplification=30, frontline=0, front2back=90,
+    initiation=60, dive=25, peel=60, disengage=70, amplification=30, frontline=0, front2back=90,
     burst_dmg=80, sustained_dmg=50, aoe_dmg=100, poke=70,
     range=70, zone_control=100,
     waveclear=80, side_pressure=30, map_reach=20,
@@ -171,7 +174,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Renekton"]: dict(
     white=25, blue=0, black=0, red=100, green=0,
-    initiation=50, dive=70, peel=30, disengage=10, amplification=0, frontline=70, front2back=60,
+    initiation=50, dive=70, peel=30, disengage=20, amplification=0, frontline=70, front2back=60,
     burst_dmg=80, sustained_dmg=40, aoe_dmg=60, poke=0,
     range=20, zone_control=10,
     waveclear=40, side_pressure=70, map_reach=10,
@@ -206,8 +209,8 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=60, mid=80, late=60,
   ),
   CHAMPION_ID["Vi"]: dict(
-    white=50, blue=0, black=0, red=100, green=0,
-    initiation=100, dive=100, peel=40, disengage=0, amplification=0, frontline=50, front2back=70,
+    white=50, blue=0, black=0, red=75, green=0,
+    initiation=100, dive=100, peel=40, disengage=35, amplification=0, frontline=50, front2back=70,
     burst_dmg=70, sustained_dmg=40, aoe_dmg=30, poke=0,
     range=40, zone_control=0,
     waveclear=30, side_pressure=0, map_reach=20,
@@ -243,7 +246,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Karthus"]: dict(
     white=0, blue=50, black=100, red=0, green=75,
-    initiation=0, dive=30, peel=10, disengage=10, amplification=20, frontline=40, front2back=90,
+    initiation=0, dive=30, peel=10, disengage=70, amplification=20, frontline=40, front2back=90,
     burst_dmg=70, sustained_dmg=90, aoe_dmg=100, poke=40,
     range=70, zone_control=90,
     waveclear=90, side_pressure=0, map_reach=100,
@@ -252,7 +255,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Kindred"]: dict(
     white=50, blue=25, black=100, red=50, green=50,
-    initiation=20, dive=30, peel=70, disengage=30, amplification=0, frontline=0, front2back=90,
+    initiation=20, dive=30, peel=70, disengage=65, amplification=0, frontline=0, front2back=90,
     burst_dmg=60, sustained_dmg=90, aoe_dmg=20, poke=10,
     range=60, zone_control=40,
     waveclear=40, side_pressure=10, map_reach=30,
@@ -261,7 +264,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Kassadin"]: dict(
     white=0, blue=0, black=75, red=0, green=100,
-    initiation=20, dive=100, peel=0, disengage=20, amplification=0, frontline=20, front2back=30,
+    initiation=20, dive=100, peel=0, disengage=10, amplification=0, frontline=20, front2back=30,
     burst_dmg=90, sustained_dmg=70, aoe_dmg=60, poke=0,
     range=40, zone_control=20,
     waveclear=70, side_pressure=70, map_reach=50,
@@ -288,7 +291,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Jarvan IV"]: dict(
     white=75, blue=25, black=0, red=75, green=25,
-    initiation=100, dive=100, peel=50, disengage=30, amplification=20, frontline=70, front2back=60,
+    initiation=100, dive=100, peel=50, disengage=45, amplification=20, frontline=70, front2back=60,
     burst_dmg=60, sustained_dmg=30, aoe_dmg=60, poke=0,
     range=40, zone_control=70,
     waveclear=10, side_pressure=0, map_reach=40,
@@ -297,7 +300,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Nocturne"]: dict(
     white=50, blue=75, black=50, red=50, green=0,
-    initiation=90, dive=100, peel=0, disengage=0, amplification=0, frontline=30, front2back=20,
+    initiation=90, dive=100, peel=0, disengage=30, amplification=0, frontline=30, front2back=20,
     burst_dmg=80, sustained_dmg=60, aoe_dmg=30, poke=10,
     range=30, zone_control=20,
     waveclear=25, side_pressure=30, map_reach=90,
@@ -306,7 +309,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Jayce"]: dict(
     white=50, blue=50, black=0, red=50, green=50,
-    initiation=10, dive=30, peel=20, disengage=0, amplification=20, frontline=10, front2back=70,
+    initiation=10, dive=30, peel=20, disengage=30, amplification=20, frontline=10, front2back=70,
     burst_dmg=90, sustained_dmg=50, aoe_dmg=70, poke=100,
     range=90, zone_control=70,
     waveclear=60, side_pressure=60, map_reach=30,
@@ -315,7 +318,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Xayah"]: dict(
     white=50, blue=75, black=0, red=0, green=75,
-    initiation=0, dive=0, peel=60, disengage=90, amplification=0, frontline=0, front2back=100,
+    initiation=0, dive=0, peel=60, disengage=80, amplification=0, frontline=0, front2back=100,
     burst_dmg=70, sustained_dmg=100, aoe_dmg=70, poke=0,
     range=40, zone_control=40,
     waveclear=90, side_pressure=0, map_reach=0,
@@ -335,23 +338,23 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     white=0, blue=25, black=75, red=50, green=25,
     initiation=10, dive=20, peel=10, disengage=80, amplification=0, frontline=70, front2back=60, # disengage is bumped to represent the her identity
     burst_dmg=70, sustained_dmg=80, aoe_dmg=90, poke=0,
-    range=10, zone_control=30,
+    range=10, zone_control=50, # specialized in melee range control
     waveclear=60, side_pressure=90, map_reach=0,
     hands_requirement=50, protection_dependence=0, resource_demand=60, lead_dependence=60,
     early=60, mid=90, late=70,
   ),
   CHAMPION_ID["Rumble"]: dict(
     white=50, blue=75, black=0, red=50, green=25,
-    initiation=50, dive=50, peel=40, disengage=50, amplification=10, frontline=40, front2back=80,
+    initiation=50, dive=50, peel=40, disengage=70, amplification=10, frontline=40, front2back=80,
     burst_dmg=70, sustained_dmg=80, aoe_dmg=100, poke=30,
     range=60, zone_control=90,
     waveclear=80, side_pressure=60, map_reach=30,
-    hands_requirement=70, protection_dependence=30, resource_demand=60, lead_dependence=50,
+    hands_requirement=90, protection_dependence=30, resource_demand=60, lead_dependence=50,
     early=80, mid=90, late=80,
   ),
   CHAMPION_ID["Xin Zhao"]: dict(
     white=50, blue=25, black=0, red=75, green=0,
-    initiation=70, dive=80, peel=40, disengage=30, amplification=0, frontline=85, front2back=100,
+    initiation=70, dive=80, peel=40, disengage=65, amplification=0, frontline=85, front2back=100,
     burst_dmg=40, sustained_dmg=70, aoe_dmg=40, poke=0,
     range=30, zone_control=40,
     waveclear=20, side_pressure=0, map_reach=0,
@@ -360,7 +363,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Galio"]: dict(
     white=100, blue=50, black=0, red=0, green=25,
-    initiation=80, dive=80, peel=90, disengage=60, amplification=20, frontline=90, front2back=90,
+    initiation=80, dive=80, peel=90, disengage=75, amplification=20, frontline=90, front2back=90,
     burst_dmg=60, sustained_dmg=0, aoe_dmg=80, poke=20,
     range=30, zone_control=60,
     waveclear=70, side_pressure=0, map_reach=80,
@@ -369,7 +372,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Syndra"]: dict(
     white=25, blue=75, black=0, red=25, green=75,
-    initiation=70, dive=0, peel=40, disengage=50, amplification=0, frontline=0, front2back=80,
+    initiation=70, dive=0, peel=40, disengage=65, amplification=0, frontline=0, front2back=80,
     burst_dmg=100, sustained_dmg=60, aoe_dmg=70, poke=60,
     range=70, zone_control=80,
     waveclear=80, side_pressure=0, map_reach=0,
@@ -378,7 +381,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
   ),
   CHAMPION_ID["Ezreal"]: dict(
     white=25, blue=75, black=0, red=25, green=75,
-    initiation=0, dive=20, peel=0, disengage=10, amplification=0, frontline=0, front2back=80,
+    initiation=0, dive=20, peel=60, disengage=10, amplification=0, frontline=0, front2back=80,
     burst_dmg=60, sustained_dmg=80, aoe_dmg=30, poke=100,
     range=90, zone_control=40,
     waveclear=10, side_pressure=0, map_reach=60,
@@ -386,7 +389,7 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     early=60, mid=90, late=80,
   ),
   CHAMPION_ID["Twitch"]: dict(
-    white=0, blue=25, black=50, red=75, green=100,
+    white=0, blue=25, black=50, red=50, green=100,
     initiation=30, dive=40, peel=0, disengage=0, amplification=0, frontline=0, front2back=90,
     burst_dmg=70, sustained_dmg=100, aoe_dmg=90, poke=0,
     range=70, zone_control=20,
@@ -418,7 +421,97 @@ CHAMPION_IDENTITY: dict[int, dict[str, int]] = {
     burst_dmg=10, sustained_dmg=0, aoe_dmg=10, poke=30,
     range=40, zone_control=20,
     waveclear=0, side_pressure=0, map_reach=30,
-    hands_requirement=30, protection_dependence=60, resource_demand=80, lead_dependence=10,
+    hands_requirement=10, protection_dependence=60, resource_demand=60, lead_dependence=10,
     early=30, mid=70, late=100,
+  ),
+  CHAMPION_ID["Gwen"]: dict(
+    white=25, blue=50, black=0, red=0, green=100,
+    initiation=30, dive=70, peel=10, disengage=40, amplification=0, frontline=60, front2back=90,
+    burst_dmg=70, sustained_dmg=100, aoe_dmg=80, poke=10,
+    range=30, zone_control=10,
+    waveclear=70, side_pressure=100, map_reach=20,
+    hands_requirement=50, protection_dependence=20, resource_demand=90, lead_dependence=30,
+    early=40, mid=80, late=90,
+  ),
+  CHAMPION_ID["Singed"]: dict(
+    white=25, blue=50, black=75, red=0, green=25,
+    initiation=50, dive=40, peel=60, disengage=60, amplification=0, frontline=70, front2back=50,
+    burst_dmg=25, sustained_dmg=80, aoe_dmg=80, poke=0,
+    range=20, zone_control=60,
+    waveclear=70, side_pressure=70, map_reach=40,
+    hands_requirement=60, protection_dependence=0, resource_demand=50, lead_dependence=20,
+    early=30, mid=80, late=70,
+  ),
+  CHAMPION_ID["Wukong"]: dict(
+    white=50, blue=25, black=0, red=50, green=25,
+    initiation=90, dive=90, peel=60, disengage=65, amplification=0, frontline=70, front2back=80,
+    burst_dmg=65, sustained_dmg=65, aoe_dmg=80, poke=0,
+    range=40, zone_control=40,
+    waveclear=0, side_pressure=10, map_reach=30,
+    hands_requirement=40, protection_dependence=0, resource_demand=30, lead_dependence=50,
+    early=70, mid=85, late=60,
+  ),
+  CHAMPION_ID["Lillia"]: dict(
+    white=25, blue=75, black=0, red=0, green=75,
+    initiation=70, dive=40, peel=60, disengage=50, amplification=0, frontline=20, front2back=90,
+    burst_dmg=65, sustained_dmg=90, aoe_dmg=80, poke=10,
+    range=45, zone_control=50,
+    waveclear=40, side_pressure=0, map_reach=40,
+    hands_requirement=70, protection_dependence=10, resource_demand=75, lead_dependence=30,
+    early=50, mid=80, late=80,
+  ),
+  CHAMPION_ID["Taliyah"]: dict(
+    white=75, blue=100, black=0, red=0, green=50,
+    initiation=50, dive=20, peel=60, disengage=90, amplification=0, frontline=0, front2back=90,
+    burst_dmg=80, sustained_dmg=80, aoe_dmg=90, poke=60,
+    range=75, zone_control=100,
+    waveclear=80, side_pressure=10, map_reach=85,
+    hands_requirement=75, protection_dependence=40, resource_demand=75, lead_dependence=20,
+    early=50, mid=80, late=80,
+  ),
+  CHAMPION_ID["Cassiopeia"]: dict(
+    white=25, blue=75, black=0, red=0, green=100,
+    initiation=40, dive=0, peel=70, disengage=70, amplification=0, frontline=10, front2back=100,
+    burst_dmg=60, sustained_dmg=100, aoe_dmg=40, poke=10,
+    range=40, zone_control=80,
+    waveclear=40, side_pressure=40, map_reach=0,
+    hands_requirement=90, protection_dependence=70, resource_demand=90, lead_dependence=20,
+    early=50, mid=80, late=95,
+  ),
+  CHAMPION_ID["Jinx"]: dict(
+    white=50, blue=0, black=0, red=0, green=100,
+    initiation=0, dive=0, peel=30, disengage=0, amplification=0, frontline=0, front2back=100,
+    burst_dmg=30, sustained_dmg=100, aoe_dmg=70, poke=10,
+    range=75, zone_control=30,
+    waveclear=95, side_pressure=0, map_reach=50,
+    hands_requirement=50, protection_dependence=100, resource_demand=100, lead_dependence=10,
+    early=40, mid=70, late=100,
+  ),
+  CHAMPION_ID["Varus"]: dict(
+    white=25, blue=50, black=0, red=25, green=75,
+    initiation=80, dive=0, peel=40, disengage=30, amplification=0, frontline=0, front2back=100,
+    burst_dmg=70, sustained_dmg=100, aoe_dmg=50, poke=60,
+    range=65, zone_control=60,
+    waveclear=60, side_pressure=0, map_reach=10,
+    hands_requirement=60, protection_dependence=90, resource_demand=90, lead_dependence=30,
+    early=60, mid=80, late=90,
+  ),
+  CHAMPION_ID["Thresh"]: dict(
+    white=100, blue=75, black=0, red=25, green=25,
+    initiation=90, dive=60, peel=100, disengage=80, amplification=10, frontline=70, front2back=100,
+    burst_dmg=10, sustained_dmg=0, aoe_dmg=10, poke=0,
+    range=45, zone_control=70,
+    waveclear=0, side_pressure=0, map_reach=0,
+    hands_requirement=100, protection_dependence=0, resource_demand=10, lead_dependence=30,
+    early=70, mid=80, late=60,
+  ),
+  CHAMPION_ID["Nami"]: dict(
+    white=75, blue=75, black=0, red=25, green=75,
+    initiation=30, dive=0, peel=80, disengage=80, amplification=80, frontline=0, front2back=90,
+    burst_dmg=20, sustained_dmg=0, aoe_dmg=20, poke=10,
+    range=60, zone_control=30,
+    waveclear=0, side_pressure=0, map_reach=30,
+    hands_requirement=40, protection_dependence=20, resource_demand=30, lead_dependence=20,
+    early=60, mid=80, late=70,
   ),
 }
